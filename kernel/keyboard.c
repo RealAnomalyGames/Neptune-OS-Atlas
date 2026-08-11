@@ -74,6 +74,41 @@ uint8_t keyboard_read_scancode(void)
     return scancode;
 }
 
+static char keyboard_scancode_to_char(uint8_t scancode)
+{
+    uint8_t key = scancode & 0x7F;
+
+    if (key >= 128)
+    {
+        return 0;
+    }
+
+    char normal = keyboard_map[key];
+    char shifted = keyboard_shift_map[key];
+
+    if (normal == 0)
+    {
+        return 0;
+    }
+
+    if (normal >= 'a' && normal <= 'z')
+    {
+        if (keyboard_shift_pressed() ^ keyboard_caps_lock())
+        {
+            return shifted;
+        }
+
+        return normal;
+    }
+
+    if (keyboard_shift_pressed())
+    {
+        return shifted;
+    }
+
+    return normal;
+}
+
 void keyboard_process_scancode(uint8_t scancode)
 {
     int released = scancode & SCANCODE_RELEASE;
@@ -123,4 +158,33 @@ int keyboard_alt_pressed(void)
 int keyboard_caps_lock(void)
 {
     return caps_lock;
+}
+
+char keyboard_getchar(void)
+{
+    while (1)
+    {
+        if (!keyboard_has_input())
+        {
+            continue;
+        }
+
+        uint8_t scancode = keyboard_read_scancode();
+
+        if (scancode & SCANCODE_RELEASE)
+        {
+            keyboard_process_scancode(scancode);
+            continue;
+        }
+
+        keyboard_process_scancode(scancode);
+
+        char character =
+            keyboard_scancode_to_char(scancode);
+
+        if (character != 0)
+        {
+            return character;
+        }
+    }
 }

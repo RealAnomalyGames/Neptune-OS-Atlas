@@ -114,4 +114,6 @@ int keyboard_ctrl_pressed(void);
 int keyboard_alt_pressed(void);
 int keyboard_caps_lock(void);
 
+char keyboard_getchar(void);
+
 #endif
