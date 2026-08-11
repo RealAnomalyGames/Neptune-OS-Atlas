@@ -238,10 +238,7 @@ void shell_command_help(void)
  */
 void shell_command_clear(void)
 {
-    for (uint32_t i = 0; i < 25; i++)
-    {
-        terminal_putchar('\n');
-    }
+    terminal_clear();
 }
 
 /*
