@@ -2,10 +2,14 @@
 #include "terminal.h"
 #include "keyboard.h"
 #include "shell.h"
+#include "system.h"
 
 void kernel_main(void)
 {
     terminal_initialize();
+
+    system_initialize();
+
     keyboard_initialize();
     
     shell_initialize();
