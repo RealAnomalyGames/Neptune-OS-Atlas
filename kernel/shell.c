@@ -2,6 +2,7 @@
 #include "terminal.h"
 #include "keyboard.h"
 #include "parser.h"
+#include "cpu.h"
 
 static char shell_buffer[SHELL_BUFFER_SIZE];
 static uint32_t shell_buffer_length;
@@ -230,6 +231,7 @@ void shell_command_help(void)
     terminal_write("  clear      Clear the screen\n");
     terminal_write("  about      About Neptune OS Atlas\n");
     terminal_write("  version    Show system version\n");
+    terminal_write("  cpu       Show CPU information\n");
     terminal_write("  echo       Display text\n");
 }
 
@@ -258,8 +260,43 @@ void shell_command_about(void)
 void shell_command_version(void)
 {
     terminal_write("Neptune OS Atlas\n");
-    terminal_write("Build 004\n");
+    terminal_write("Build 005\n");
     terminal_write("Architecture: x86\n");
+}
+
+void shell_command_cpu(void)
+{
+    CPUInformation information;
+
+    cpu_get_information(&information);
+
+    terminal_write("\nCPU Information\n");
+    terminal_write("----------------\n");
+
+    terminal_write("Vendor: ");
+    terminal_write(information.vendor);
+    terminal_write("\n");
+
+    terminal_write("CPUID: ");
+
+    if (information.cpuid_supported)
+    {
+        terminal_write("Supported");
+    }
+    else
+    {
+        terminal_write("Not supported");
+    }
+
+    terminal_write("\n");
+
+    terminal_write("Maximum Basic Leaf: ");
+    terminal_write_uint(information.maximum_basic_leaf);
+    terminal_write("\n");
+
+    terminal_write("Maximum Extended Leaf: ");
+    terminal_write_uint(information.maximum_extended_leaf);
+    terminal_write("\n");
 }
 
 /*
@@ -315,6 +352,18 @@ static void shell_execute_command(ParsedCommand* command)
     if (shell_string_equals(command->command, "version"))
     {
         shell_command_version();
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "cpu"))
+    {
+        shell_command_cpu();
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "cpuinfo"))
+    {
+        shell_command_cpu();
         return;
     }
 

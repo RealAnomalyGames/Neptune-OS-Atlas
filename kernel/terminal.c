@@ -162,6 +162,36 @@ void terminal_write(const char* string)
     }
 }
 
+void terminal_write_uint(uint32_t value)
+{
+    char buffer[11];
+    uint32_t index = 0;
+
+    if (value == 0)
+    {
+        terminal_putchar('0');
+        return;
+    }
+
+    while (value > 0)
+    {
+        buffer[index] =
+            '0' + (value % 10);
+
+        value /= 10;
+        index++;
+    }
+
+    while (index > 0)
+    {
+        index--;
+
+        terminal_putchar(
+            buffer[index]
+        );
+    }
+}
+
 void terminal_backspace(void)
 {
     if (terminal_column == 0)

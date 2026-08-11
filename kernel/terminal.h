@@ -12,6 +12,7 @@ void terminal_clear(void);
 
 void terminal_putchar(char character);
 void terminal_write(const char* string);
+void terminal_write_uint(uint32_t value);
 
 void terminal_backspace(void);
 
