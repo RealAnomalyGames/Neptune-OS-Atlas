@@ -32,7 +32,7 @@ $(TARGET): $(KERNEL) grub/grub.cfg
 	grub-mkrescue -o $(TARGET) $(ISO)
 
 run: $(TARGET)
-	qemu-system-i386 -cdrom $(TARGET)
+	qemu-system-i386 -cdrom $(TARGET) -display none -serial stdio
 
 clean:
 	rm -rf $(BUILD) $(TARGET) $(KERNEL) boot.o kernel.o
