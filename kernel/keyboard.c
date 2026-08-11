@@ -74,13 +74,64 @@ uint8_t keyboard_read_scancode(void)
     return scancode;
 }
 
-static char keyboard_scancode_to_char(uint8_t scancode)
+static uint16_t keyboard_scancode_to_key(uint8_t scancode)
 {
     uint8_t key = scancode & 0x7F;
 
     if (key >= 128)
     {
-        return 0;
+        return KEY_NONE;
+    }
+
+    switch (key)
+    {
+        case SCANCODE_ESC:
+            return KEY_ESCAPE;
+
+        case SCANCODE_BACKSPACE:
+            return KEY_BACKSPACE;
+
+        case SCANCODE_TAB:
+            return KEY_TAB;
+
+        case SCANCODE_ENTER:
+            return KEY_ENTER;
+
+        case SCANCODE_F1:
+            return KEY_F1;
+
+        case SCANCODE_F2:
+            return KEY_F2;
+
+        case SCANCODE_F3:
+            return KEY_F3;
+
+        case SCANCODE_F4:
+            return KEY_F4;
+
+        case SCANCODE_F5:
+            return KEY_F5;
+
+        case SCANCODE_F6:
+            return KEY_F6;
+
+        case SCANCODE_F7:
+            return KEY_F7;
+
+        case SCANCODE_F8:
+            return KEY_F8;
+
+        case SCANCODE_F9:
+            return KEY_F9;
+
+        case SCANCODE_F10:
+            return KEY_F10;
+
+        case SCANCODE_F11:
+            return KEY_F11;
+
+        case SCANCODE_F12:
+            return KEY_F12;
     }
 
     char normal = keyboard_map[key];
@@ -88,7 +139,7 @@ static char keyboard_scancode_to_char(uint8_t scancode)
 
     if (normal == 0)
     {
-        return 0;
+        return KEY_NONE;
     }
 
     if (normal >= 'a' && normal <= 'z')
@@ -160,7 +211,7 @@ int keyboard_caps_lock(void)
     return caps_lock;
 }
 
-char keyboard_getchar(void)
+uint16_t keyboard_getkey(void)
 {
     while (1)
     {
@@ -179,12 +230,11 @@ char keyboard_getchar(void)
 
         keyboard_process_scancode(scancode);
 
-        char character =
-            keyboard_scancode_to_char(scancode);
+        uint16_t key = keyboard_scancode_to_key(scancode);
 
-        if (character != 0)
+        if (key != KEY_NONE)
         {
-            return character;
+            return key;
         }
     }
 }

@@ -101,6 +101,28 @@
 #define SCANCODE_F11        0x57
 #define SCANCODE_F12        0x58
 
+#define KEY_NONE       0
+#define KEY_ESCAPE     0x100
+#define KEY_BACKSPACE  0x101
+#define KEY_TAB        0x102
+#define KEY_ENTER      0x103
+#define KEY_UP         0x104
+#define KEY_DOWN       0x105
+#define KEY_LEFT       0x106
+#define KEY_RIGHT      0x107
+#define KEY_F1         0x108
+#define KEY_F2         0x109
+#define KEY_F3         0x10A
+#define KEY_F4         0x10B
+#define KEY_F5         0x10C
+#define KEY_F6         0x10D
+#define KEY_F7         0x10E
+#define KEY_F8         0x10F
+#define KEY_F9         0x110
+#define KEY_F10        0x111
+#define KEY_F11        0x112
+#define KEY_F12        0x113
+
 void keyboard_initialize(void);
 
 int keyboard_has_input(void);
@@ -114,6 +136,6 @@ int keyboard_ctrl_pressed(void);
 int keyboard_alt_pressed(void);
 int keyboard_caps_lock(void);
 
-char keyboard_getchar(void);
+uint16_t keyboard_getkey(void);
 
 #endif

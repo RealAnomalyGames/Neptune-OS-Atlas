@@ -18,8 +18,27 @@ void kernel_main(void)
 
     while (1)
     {
-        char character = keyboard_getchar();
+        uint16_t key = keyboard_getkey();
 
-        terminal_putchar(character);
+        if (key < 0x100)
+        {
+            terminal_putchar((char)key);
+        }
+        else if (key == KEY_ENTER)
+        {
+            terminal_putchar('\n');
+            terminal_write("> ");
+        }
+        else if (key == KEY_BACKSPACE)
+        {
+            terminal_backspace();
+        }
+        else if (key == KEY_TAB)
+        {
+            terminal_putchar(' ');
+            terminal_putchar(' ');
+            terminal_putchar(' ');
+            terminal_putchar(' ');
+        }
     }
 }
