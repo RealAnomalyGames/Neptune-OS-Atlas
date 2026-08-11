@@ -7,6 +7,7 @@
 #include "system.h"
 #include "cpu.h"
 #include "memory.h"
+#include "timer.h"
 
 void kernel_main(uint32_t multiboot_information)
 {
@@ -17,6 +18,8 @@ void kernel_main(uint32_t multiboot_information)
     cpu_initialize();
 
     memory_initialize(multiboot_information);
+
+    timer_initialize();
 
     keyboard_initialize();
     

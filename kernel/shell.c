@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "cpu.h"
 #include "memory.h"
+#include "timer.h"
 
 static char shell_buffer[SHELL_BUFFER_SIZE];
 static uint32_t shell_buffer_length;
@@ -234,7 +235,10 @@ void shell_command_help(void)
     terminal_write("  version    Show system version\n");
     terminal_write("  cpu        Show CPU information\n");
     terminal_write("  memory     Show memory information\n");
+    terminal_write("  uptime     Show system uptime\n");
+    terminal_write("  uname      Show system information\n");
     terminal_write("  echo       Display text\n");
+    
 }
 
 /*
@@ -329,6 +333,72 @@ void shell_command_memory(void)
     terminal_write(" KB\n");
 }
 
+void shell_command_uptime(void)
+{
+    uint32_t seconds;
+
+    seconds = timer_get_uptime_seconds();
+
+    terminal_write("\nUptime: ");
+    terminal_write_uint(seconds);
+    terminal_write(" seconds\n");
+}
+
+void shell_command_uname(ParsedCommand* command)
+{
+    if (command == 0)
+    {
+        return;
+    }
+
+    if (command->argument_count == 0)
+    {
+        terminal_write(system_get_name());
+        terminal_write("\n");
+
+        return;
+    }
+
+    if (shell_string_equals(command->arguments[0], "-a"))
+    {
+        terminal_write(system_get_name());
+        terminal_write(" ");
+        terminal_write(system_get_version());
+        terminal_write(" ");
+        terminal_write(system_get_architecture());
+        terminal_write("\n");
+
+        return;
+    }
+
+    if (shell_string_equals(command->arguments[0], "-s"))
+    {
+        terminal_write(system_get_name());
+        terminal_write("\n");
+
+        return;
+    }
+
+    if (shell_string_equals(command->arguments[0], "-r"))
+    {
+        terminal_write(system_get_version());
+        terminal_write("\n");
+
+        return;
+    }
+
+    if (shell_string_equals(command->arguments[0], "-m"))
+    {
+        terminal_write(system_get_architecture());
+        terminal_write("\n");
+
+        return;
+    }
+
+    terminal_write("uname: invalid option\n");
+    terminal_write("Usage: uname [-a] [-s] [-r] [-m]\n");
+}
+
 /*
  * Display the supplied arguments.
  */
@@ -400,6 +470,18 @@ static void shell_execute_command(ParsedCommand* command)
     else if (shell_string_equals(command->command, "memory"))
     {
         shell_command_memory();
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "uptime"))
+    {
+        shell_command_uptime();
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "uname"))
+    {
+        shell_command_uname(command);
         return;
     }
 

@@ -17,7 +17,9 @@ KERNEL_OBJECTS = \
 	$(BUILD_DIR)/shell.o \
 	$(BUILD_DIR)/system.o \
 	$(BUILD_DIR)/cpu.o \
-	$(BUILD_DIR)/memory.o
+	$(BUILD_DIR)/memory.o \
+	$(BUILD_DIR)/timer.o \
+	$(BUILD_DIR)/interrupts.o
 
 KERNEL = $(BUILD_DIR)/kernel.bin
 
@@ -58,6 +60,12 @@ $(BUILD_DIR)/cpu.o: kernel/cpu.c | $(BUILD_DIR)
 
 $(BUILD_DIR)/memory.o: kernel/memory.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c kernel/memory.c -o $(BUILD_DIR)/memory.o
+
+$(BUILD_DIR)/timer.o: kernel/timer.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/timer.c -o $(BUILD_DIR)/timer.o
+
+$(BUILD_DIR)/interrupts.o: kernel/interrupts.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/interrupts.c -o $(BUILD_DIR)/interrupts.o
 
 $(KERNEL): $(KERNEL_OBJECTS)
 	$(LD) $(LDFLAGS) -o $(KERNEL) \

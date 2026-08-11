@@ -1,6 +1,7 @@
 #include "system.h"
 #include "cpu.h"
 #include "memory.h"
+#include "timer.h"
 
 void system_initialize(void)
 {
@@ -37,7 +38,7 @@ void system_get_information(SystemInformation* information)
         memory.total_memory_kb;
 
     information->uptime_seconds =
-        0;
+        timer_get_uptime_seconds();
 }
 
 const char* system_get_name(void)
