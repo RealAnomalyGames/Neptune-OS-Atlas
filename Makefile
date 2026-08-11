@@ -1,61 +1,66 @@
-ISO = build/neptune-atlas-build003.iso
-ISO_DIR = build/isodir
-
-iso: build/kernel.bin
-	mkdir -p $(ISO_DIR)/boot/grub
-	cp build/kernel.bin $(ISO_DIR)/boot/kernel.bin
-	cp grub/grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
-	grub-mkrescue -o $(ISO) $(ISO_DIR)
-
-CC = gcc
 AS = as
+CC = gcc
 LD = ld
 
 CFLAGS = -m32 -ffreestanding -fno-pie -fno-stack-protector -Wall
-ASFLAGS = --32
 LDFLAGS = -m elf_i386 -T kernel/linker.ld
 
-BUILD = build
+BUILD_DIR = build
 
 KERNEL_OBJECTS = \
-	$(BUILD)/kernel.o \
-	$(BUILD)/keyboard.o \
-	$(BUILD)/terminal.o \
-	$(BUILD)/io.o \
-	$(BUILD)/parser.o \
-	$(BUILD)/shell.o
+	$(BUILD_DIR)/boot.o \
+	$(BUILD_DIR)/kernel.o \
+	$(BUILD_DIR)/keyboard.o \
+	$(BUILD_DIR)/terminal.o \
+	$(BUILD_DIR)/io.o \
+	$(BUILD_DIR)/parser.o \
+	$(BUILD_DIR)/shell.o
 
-all: $(BUILD)/kernel.bin
+KERNEL = $(BUILD_DIR)/kernel.bin
 
-$(BUILD):
-	mkdir -p $(BUILD)
+ISO_DIR = $(BUILD_DIR)/iso
+ISO = $(BUILD_DIR)/neptune-os-atlas.iso
 
-$(BUILD)/boot.o: boot/boot.s | $(BUILD)
-	$(AS) $(ASFLAGS) boot/boot.s -o $(BUILD)/boot.o
+all: $(KERNEL)
 
-$(BUILD)/kernel.o: kernel/kernel.c kernel/keyboard.h kernel/terminal.h | $(BUILD)
-	$(CC) $(CFLAGS) -c kernel/kernel.c -o $(BUILD)/kernel.o
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
-$(BUILD)/keyboard.o: kernel/keyboard.c kernel/keyboard.h kernel/io.h | $(BUILD)
-	$(CC) $(CFLAGS) -c kernel/keyboard.c -o $(BUILD)/keyboard.o
+$(BUILD_DIR)/boot.o: boot/boot.s | $(BUILD_DIR)
+	$(AS) --32 boot/boot.s -o $(BUILD_DIR)/boot.o
 
-$(BUILD)/terminal.o: kernel/terminal.c kernel/terminal.h kernel/io.h | $(BUILD)
-	$(CC) $(CFLAGS) -c kernel/terminal.c -o $(BUILD)/terminal.o
+$(BUILD_DIR)/kernel.o: kernel/kernel.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/kernel.c -o $(BUILD_DIR)/kernel.o
 
-$(BUILD)/io.o: kernel/io.c kernel/io.h | $(BUILD)
-	$(CC) $(CFLAGS) -c kernel/io.c -o $(BUILD)/io.o
+$(BUILD_DIR)/keyboard.o: kernel/keyboard.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/keyboard.c -o $(BUILD_DIR)/keyboard.o
 
-$(BUILD)/shell.o: kernel/shell.c kernel/shell.h | $(BUILD)
-	$(CC) $(CFLAGS) -c kernel/shell.c -o $(BUILD)/shell.o
+$(BUILD_DIR)/terminal.o: kernel/terminal.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/terminal.c -o $(BUILD_DIR)/terminal.o
 
-$(BUILD)/parser.o: kernel/parser.c kernel/parser.h | $(BUILD)
-	$(CC) $(CFLAGS) -c kernel/parser.c -o $(BUILD)/parser.o
+$(BUILD_DIR)/io.o: kernel/io.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/io.c -o $(BUILD_DIR)/io.o
 
-$(BUILD)/kernel.bin: $(BUILD)/boot.o $(KERNEL_OBJECTS)
-	$(LD) $(LDFLAGS) -o $(BUILD)/kernel.bin \
-		$(BUILD)/boot.o $(KERNEL_OBJECTS)
+$(BUILD_DIR)/parser.o: kernel/parser.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/parser.c -o $(BUILD_DIR)/parser.o
+
+$(BUILD_DIR)/shell.o: kernel/shell.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/shell.c -o $(BUILD_DIR)/shell.o
+
+$(KERNEL): $(KERNEL_OBJECTS)
+	$(LD) $(LDFLAGS) -o $(KERNEL) \
+		$(KERNEL_OBJECTS)
+
+iso: $(KERNEL)
+	mkdir -p $(ISO_DIR)/boot/grub
+	cp $(KERNEL) $(ISO_DIR)/boot/kernel.bin
+	cp grub/grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
+	grub-mkrescue -o $(ISO) $(ISO_DIR)
 
 clean:
-	rm -rf $(BUILD)
+	rm -rf $(BUILD_DIR)
 
-.PHONY: all clean iso
+run: $(ISO)
+	qemu-system-i386 -cdrom $(ISO)
+
+.PHONY: all iso clean run
