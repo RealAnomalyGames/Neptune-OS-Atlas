@@ -3,6 +3,7 @@
 #include "keyboard.h"
 #include "parser.h"
 #include "cpu.h"
+#include "memory.h"
 
 static char shell_buffer[SHELL_BUFFER_SIZE];
 static uint32_t shell_buffer_length;
@@ -71,7 +72,7 @@ void shell_initialize(void)
     }
 
     terminal_write("NEPTUNE OS ATLAS\n");
-    terminal_write("Build 004\n");
+    terminal_write("Build 005\n");
     terminal_write("\n");
 }
 
@@ -231,7 +232,8 @@ void shell_command_help(void)
     terminal_write("  clear      Clear the screen\n");
     terminal_write("  about      About Neptune OS Atlas\n");
     terminal_write("  version    Show system version\n");
-    terminal_write("  cpu       Show CPU information\n");
+    terminal_write("  cpu        Show CPU information\n");
+    terminal_write("  memory     Show memory information\n");
     terminal_write("  echo       Display text\n");
 }
 
@@ -299,6 +301,34 @@ void shell_command_cpu(void)
     terminal_write("\n");
 }
 
+void shell_command_memory(void)
+{
+    MemoryInformation information;
+
+    memory_get_information(&information);
+
+    terminal_write("\nMemory Information\n");
+    terminal_write("------------------\n");
+
+    terminal_write("Lower Memory: ");
+    terminal_write_uint(
+        information.lower_memory_kb
+    );
+    terminal_write(" KB\n");
+
+    terminal_write("Upper Memory: ");
+    terminal_write_uint(
+        information.upper_memory_kb
+    );
+    terminal_write(" KB\n");
+
+    terminal_write("Total Memory: ");
+    terminal_write_uint(
+        information.total_memory_kb
+    );
+    terminal_write(" KB\n");
+}
+
 /*
  * Display the supplied arguments.
  */
@@ -364,6 +394,12 @@ static void shell_execute_command(ParsedCommand* command)
     else if (shell_string_equals(command->command, "cpuinfo"))
     {
         shell_command_cpu();
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "memory"))
+    {
+        shell_command_memory();
         return;
     }
 

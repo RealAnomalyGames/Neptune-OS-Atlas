@@ -1,17 +1,22 @@
+#include <stdint.h>
+
 #include "kernel.h"
 #include "terminal.h"
 #include "keyboard.h"
 #include "shell.h"
 #include "system.h"
 #include "cpu.h"
+#include "memory.h"
 
-void kernel_main(void)
+void kernel_main(uint32_t multiboot_information)
 {
     terminal_initialize();
 
     system_initialize();
 
     cpu_initialize();
+
+    memory_initialize(multiboot_information);
 
     keyboard_initialize();
     
