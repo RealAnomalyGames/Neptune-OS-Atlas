@@ -26,6 +26,9 @@ void system_get_information(SystemInformation* information)
     information->version =
         ATLAS_VERSION;
 
+    information->build =
+        ATLAS_BUILD;
+
     information->architecture =
         ATLAS_ARCHITECTURE;
 

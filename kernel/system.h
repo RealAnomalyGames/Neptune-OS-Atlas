@@ -12,6 +12,8 @@ typedef struct
 {
     const char* name;
     const char* version;
+    uint32_t build;
+
     const char* architecture;
 
     const char* cpu;

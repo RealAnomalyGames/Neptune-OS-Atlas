@@ -5,6 +5,7 @@
 #include "cpu.h"
 #include "memory.h"
 #include "timer.h"
+#include "system.h"
 
 static char shell_buffer[SHELL_BUFFER_SIZE];
 static uint32_t shell_buffer_length;
@@ -237,6 +238,7 @@ void shell_command_help(void)
     terminal_write("  memory     Show memory information\n");
     terminal_write("  uptime     Show system uptime\n");
     terminal_write("  uname      Show system information\n");
+    terminal_write("  sysinfo    Show detailed system information\n");
     terminal_write("  echo       Display text\n");
     
 }
@@ -399,6 +401,45 @@ void shell_command_uname(ParsedCommand* command)
     terminal_write("Usage: uname [-a] [-s] [-r] [-m]\n");
 }
 
+void shell_command_sysinfo(void)
+{
+    SystemInformation information;
+
+    system_get_information(&information);
+
+    terminal_write("\n");
+    terminal_write(information.name);
+    terminal_write("\n");
+
+    terminal_write("========================\n");
+
+    terminal_write("Version:       ");
+    terminal_write(information.version);
+    terminal_write("\n");
+
+    terminal_write("Build:         ");
+    terminal_write_uint(information.build);
+    terminal_write("\n");
+
+    terminal_write("Architecture:  ");
+    terminal_write(information.architecture);
+    terminal_write("\n");
+
+    terminal_write("CPU:           ");
+    terminal_write(information.cpu);
+    terminal_write("\n");
+
+    terminal_write("Memory:        ");
+    terminal_write_uint(information.memory_kb);
+    terminal_write(" KB\n");
+
+    terminal_write("Uptime:        ");
+    terminal_write_uint(information.uptime_seconds);
+    terminal_write(" seconds\n");
+
+    terminal_write("\n");
+}
+
 /*
  * Display the supplied arguments.
  */
@@ -482,6 +523,12 @@ static void shell_execute_command(ParsedCommand* command)
     else if (shell_string_equals(command->command, "uname"))
     {
         shell_command_uname(command);
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "sysinfo"))
+    {
+        shell_command_sysinfo();
         return;
     }
 

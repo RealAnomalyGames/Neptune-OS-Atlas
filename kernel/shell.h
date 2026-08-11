@@ -26,6 +26,7 @@ void shell_command_version(void);
 void shell_command_cpu(void);
 void shell_command_memory(void);
 void shell_command_uptime(void);
+void shell_command_sysinfo(void);
 void shell_command_uname(ParsedCommand* command);
 void shell_command_echo(ParsedCommand* command);
 void shell_command_not_found(const char* command);
