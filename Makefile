@@ -22,7 +22,8 @@ KERNEL_OBJECTS = \
 	$(BUILD)/keyboard.o \
 	$(BUILD)/terminal.o \
 	$(BUILD)/io.o \
-	$(BUILD)/parser.o
+	$(BUILD)/parser.o \
+	$(BUILD)/shell.o
 
 all: $(BUILD)/kernel.bin
 
@@ -43,6 +44,12 @@ $(BUILD)/terminal.o: kernel/terminal.c kernel/terminal.h kernel/io.h | $(BUILD)
 
 $(BUILD)/io.o: kernel/io.c kernel/io.h | $(BUILD)
 	$(CC) $(CFLAGS) -c kernel/io.c -o $(BUILD)/io.o
+
+$(BUILD)/shell.o: kernel/shell.c kernel/shell.h | $(BUILD)
+	$(CC) $(CFLAGS) -c kernel/shell.c -o $(BUILD)/shell.o
+
+$(BUILD)/parser.o: kernel/parser.c kernel/parser.h | $(BUILD)
+	$(CC) $(CFLAGS) -c kernel/parser.c -o $(BUILD)/parser.o
 
 $(BUILD)/kernel.bin: $(BUILD)/boot.o $(KERNEL_OBJECTS)
 	$(LD) $(LDFLAGS) -o $(BUILD)/kernel.bin \

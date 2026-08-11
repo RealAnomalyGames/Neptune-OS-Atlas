@@ -119,3 +119,17 @@ void terminal_write(const char* data)
         data++;
     }
 }
+
+void terminal_backspace(void)
+{
+    if (terminal_column == 0)
+    {
+        return;
+    }
+
+    terminal_column--;
+
+    terminal_putchar(' ');
+
+    terminal_column--;
+}

@@ -67,11 +67,7 @@ int keyboard_has_input(void)
 
 uint8_t keyboard_read_scancode(void)
 {
-    uint8_t scancode = inb(KEYBOARD_DATA_PORT);
-
-    keyboard_update_state(scancode);
-
-    return scancode;
+    return inb(KEYBOARD_DATA_PORT);
 }
 
 static uint16_t keyboard_scancode_to_key(uint8_t scancode)
