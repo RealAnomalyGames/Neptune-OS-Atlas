@@ -1,4 +1,5 @@
 #include "system.h"
+#include "cpu.h"
 
 void system_initialize(void)
 {
@@ -19,11 +20,8 @@ void system_get_information(SystemInformation* information)
     information->version = ATLAS_VERSION;
     information->architecture = ATLAS_ARCHITECTURE;
 
-    /*
-     * These will be populated by the CPU,
-     * memory, and timer modules later.
-     */
-    information->cpu = "Unknown";
+    information->cpu = cpu_get_vendor();
+
     information->memory_kb = 0;
     information->uptime_seconds = 0;
 }

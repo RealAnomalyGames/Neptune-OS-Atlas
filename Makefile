@@ -15,7 +15,8 @@ KERNEL_OBJECTS = \
 	$(BUILD_DIR)/io.o \
 	$(BUILD_DIR)/parser.o \
 	$(BUILD_DIR)/shell.o \
-	$(BUILD_DIR)/system.o
+	$(BUILD_DIR)/system.o \
+	$(BUILD_DIR)/cpu.o
 
 KERNEL = $(BUILD_DIR)/kernel.bin
 
@@ -50,6 +51,9 @@ $(BUILD_DIR)/shell.o: kernel/shell.c | $(BUILD_DIR)
 
 $(BUILD_DIR)/system.o: kernel/system.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c kernel/system.c -o $(BUILD_DIR)/system.o
+
+$(BUILD_DIR)/cpu.o: kernel/cpu.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/cpu.c -o $(BUILD_DIR)/cpu.o
 
 $(KERNEL): $(KERNEL_OBJECTS)
 	$(LD) $(LDFLAGS) -o $(KERNEL) \

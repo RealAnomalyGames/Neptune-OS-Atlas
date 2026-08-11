@@ -3,12 +3,15 @@
 #include "keyboard.h"
 #include "shell.h"
 #include "system.h"
+#include "cpu.h"
 
 void kernel_main(void)
 {
     terminal_initialize();
 
     system_initialize();
+
+    cpu_initialize();
 
     keyboard_initialize();
     
