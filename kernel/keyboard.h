@@ -102,7 +102,16 @@
 #define SCANCODE_F12        0x58
 
 void keyboard_initialize(void);
+
 int keyboard_has_input(void);
+
 uint8_t keyboard_read_scancode(void);
+
+void keyboard_process_scancode(uint8_t scancode);
+
+int keyboard_shift_pressed(void);
+int keyboard_ctrl_pressed(void);
+int keyboard_alt_pressed(void);
+int keyboard_caps_lock(void);
 
 #endif

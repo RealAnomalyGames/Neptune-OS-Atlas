@@ -1,3 +1,11 @@
+#include "keyboard.h"
+#include "io.h"
+
+static int shift_pressed = 0;
+static int ctrl_pressed = 0;
+static int alt_pressed = 0;
+static int caps_lock = 0;
+
 static const char keyboard_map[128] =
 {
     0,
@@ -42,15 +50,12 @@ static const char keyboard_shift_map[128] =
     0, 0, 0, 0, 0, 0, 0, 0
 };
 
-#include "keyboard.h"
-#include "io.h"
-
 void keyboard_initialize(void)
 {
-    /*
-     * The PS/2 controller requires no special initialization
-     * for our basic polling implementation.
-     */
+    shift_pressed = 0;
+    ctrl_pressed = 0;
+    alt_pressed = 0;
+    caps_lock = 0;
 }
 
 int keyboard_has_input(void)
@@ -62,5 +67,60 @@ int keyboard_has_input(void)
 
 uint8_t keyboard_read_scancode(void)
 {
-    return inb(KEYBOARD_DATA_PORT);
+    uint8_t scancode = inb(KEYBOARD_DATA_PORT);
+
+    keyboard_update_state(scancode);
+
+    return scancode;
+}
+
+void keyboard_process_scancode(uint8_t scancode)
+{
+    int released = scancode & SCANCODE_RELEASE;
+    uint8_t key = scancode & 0x7F;
+
+    if (key == SCANCODE_LEFT_SHIFT ||
+        key == SCANCODE_RIGHT_SHIFT)
+    {
+        shift_pressed = !released;
+        return;
+    }
+
+    if (key == SCANCODE_LEFT_CTRL)
+    {
+        ctrl_pressed = !released;
+        return;
+    }
+
+    if (key == SCANCODE_LEFT_ALT)
+    {
+        alt_pressed = !released;
+        return;
+    }
+
+    if (key == SCANCODE_CAPS_LOCK && !released)
+    {
+        caps_lock = !caps_lock;
+        return;
+    }
+}
+
+int keyboard_shift_pressed(void)
+{
+    return shift_pressed;
+}
+
+int keyboard_ctrl_pressed(void)
+{
+    return ctrl_pressed;
+}
+
+int keyboard_alt_pressed(void)
+{
+    return alt_pressed;
+}
+
+int keyboard_caps_lock(void)
+{
+    return caps_lock;
 }
