@@ -1,41 +1,54 @@
-TARGET = neptune-os-atlas-build002.iso
-KERNEL = kernel.bin
+ISO = build/neptune-atlas-build003.iso
+ISO_DIR = build/isodir
+
+iso: build/kernel.bin
+	mkdir -p $(ISO_DIR)/boot/grub
+	cp build/kernel.bin $(ISO_DIR)/boot/kernel.bin
+	cp grub/grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
+	grub-mkrescue -o $(ISO) $(ISO_DIR)
 
 CC = gcc
 AS = as
 LD = ld
 
-CFLAGS = -m32 -ffreestanding -fno-pie -fno-stack-protector
-LDFLAGS = -m elf_i386 -T linker.ld
+CFLAGS = -m32 -ffreestanding -fno-pie -fno-stack-protector -Wall
+ASFLAGS = --32
+LDFLAGS = -m elf_i386 -T kernel/linker.ld
 
 BUILD = build
-ISO = $(BUILD)/iso
 
-.PHONY: all clean run
+KERNEL_OBJECTS = \
+	$(BUILD)/kernel.o \
+	$(BUILD)/keyboard.o \
+	$(BUILD)/terminal.o \
+	$(BUILD)/io.o \
+	$(BUILD)/parser.o
 
-all: $(TARGET)
+all: $(BUILD)/kernel.bin
 
-boot.o: boot/boot.s
-	$(AS) --32 $< -o $@
+$(BUILD):
+	mkdir -p $(BUILD)
 
-kernel.o: kernel/kernel.c kernel/kernel.h kernel/terminal.h
-	$(CC) $(CFLAGS) -c kernel/kernel.c -o $@
+$(BUILD)/boot.o: boot/boot.s | $(BUILD)
+	$(AS) $(ASFLAGS) boot/boot.s -o $(BUILD)/boot.o
 
-terminal.o: kernel/terminal.c kernel/terminal.h
-	$(CC) $(CFLAGS) -c kernel/terminal.c -o $@
+$(BUILD)/kernel.o: kernel/kernel.c kernel/keyboard.h kernel/terminal.h | $(BUILD)
+	$(CC) $(CFLAGS) -c kernel/kernel.c -o $(BUILD)/kernel.o
 
-$(KERNEL): boot.o kernel.o terminal.o linker.ld
-	$(LD) $(LDFLAGS) -o $@ boot.o kernel.o terminal.o
+$(BUILD)/keyboard.o: kernel/keyboard.c kernel/keyboard.h kernel/io.h | $(BUILD)
+	$(CC) $(CFLAGS) -c kernel/keyboard.c -o $(BUILD)/keyboard.o
 
-$(TARGET): $(KERNEL) grub/grub.cfg
-	mkdir -p $(ISO)/boot/grub
-	cp $(KERNEL) $(ISO)/boot/kernel.bin
-	cp grub/grub.cfg $(ISO)/boot/grub/grub.cfg
-	grub-file --is-x86-multiboot $(KERNEL)
-	grub-mkrescue -o $(TARGET) $(ISO)
+$(BUILD)/terminal.o: kernel/terminal.c kernel/terminal.h kernel/io.h | $(BUILD)
+	$(CC) $(CFLAGS) -c kernel/terminal.c -o $(BUILD)/terminal.o
 
-run: $(TARGET)
-	qemu-system-i386 -cdrom $(TARGET) -display none -serial stdio
+$(BUILD)/io.o: kernel/io.c kernel/io.h | $(BUILD)
+	$(CC) $(CFLAGS) -c kernel/io.c -o $(BUILD)/io.o
+
+$(BUILD)/kernel.bin: $(BUILD)/boot.o $(KERNEL_OBJECTS)
+	$(LD) $(LDFLAGS) -o $(BUILD)/kernel.bin \
+		$(BUILD)/boot.o $(KERNEL_OBJECTS)
 
 clean:
-	rm -rf $(BUILD) $(TARGET) $(KERNEL) boot.o kernel.o terminal.o
+	rm -rf $(BUILD)
+
+.PHONY: all clean iso
