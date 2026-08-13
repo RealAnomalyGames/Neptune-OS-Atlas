@@ -6,6 +6,9 @@
 #include "memory.h"
 #include "timer.h"
 #include "system.h"
+#include "filesystem.h"
+
+#define SHELL_FILE_BUFFER_SIZE 4096
 
 static char shell_buffer[SHELL_BUFFER_SIZE];
 static uint32_t shell_buffer_length;
@@ -74,7 +77,7 @@ void shell_initialize(void)
     }
 
     terminal_write("NEPTUNE OS ATLAS\n");
-    terminal_write("Build 005\n");
+    terminal_write("Build 007\n");
     terminal_write("\n");
 }
 
@@ -230,16 +233,25 @@ void shell_process_key(uint16_t key)
 void shell_command_help(void)
 {
     terminal_write("Available commands:\n");
-    terminal_write("  help       Show available commands\n");
-    terminal_write("  clear      Clear the screen\n");
-    terminal_write("  about      About Neptune OS Atlas\n");
-    terminal_write("  version    Show system version\n");
-    terminal_write("  cpu        Show CPU information\n");
-    terminal_write("  memory     Show memory information\n");
-    terminal_write("  uptime     Show system uptime\n");
-    terminal_write("  uname      Show system information\n");
-    terminal_write("  sysinfo    Show detailed system information\n");
-    terminal_write("  echo       Display text\n");
+    terminal_write("  help                Show available commands\n");
+    terminal_write("  clear               Clear the screen\n");
+    terminal_write("  about               About Neptune OS Atlas\n");
+    terminal_write("  version             Show system version\n");
+    terminal_write("  cpu                 Show CPU information\n");
+    terminal_write("  memory              Show memory information\n");
+    terminal_write("  uptime              Show system uptime\n");
+    terminal_write("  uname               Show system information\n");
+    terminal_write("  sysinfo             Show detailed system information\n");
+    terminal_write("  ls                  List directory contents\n");
+    terminal_write("  touch <file>        Create a file\n");
+    terminal_write("  mkdir <dir>         Create a directory\n");
+    terminal_write("  cat <file>          Display a file\n");
+    terminal_write("  write <file> <text> Write text to a file\n");
+    terminal_write("  rm <file>           Delete a file\n");
+    terminal_write("  cd <dir>            Change directory\n");
+    terminal_write("  pwd                 Show current directory\n");
+    terminal_write("  rmdir <dor>         Remove empty directory\n");
+    terminal_write("  echo                Display text\n");
     
 }
 
@@ -440,6 +452,425 @@ void shell_command_sysinfo(void)
     terminal_write("\n");
 }
 
+static void shell_command_ls(void)
+{
+    int result;
+
+    result = filesystem_list_directory();
+
+    if (result != ATLASFS_SUCCESS)
+    {
+        terminal_write("ls: failed to list directory.\n");
+    }
+}
+
+static void shell_command_touch(
+    const char* name
+)
+{
+    int result;
+
+    if (
+        name == 0 ||
+        name[0] == '\0'
+    )
+    {
+        terminal_write(
+            "touch: missing file name.\n"
+        );
+
+        return;
+    }
+
+    result =
+        filesystem_create_file(name);
+
+    if (result == ATLASFS_SUCCESS)
+    {
+        return;
+    }
+
+    if (result == ATLASFS_ALREADY_EXISTS)
+    {
+        terminal_write(
+            "touch: file already exists.\n"
+        );
+
+        return;
+    }
+
+    if (result == ATLASFS_NO_SPACE)
+    {
+        terminal_write(
+            "touch: filesystem is full.\n"
+        );
+
+        return;
+    }
+
+    terminal_write(
+        "touch: failed to create file.\n"
+    );
+}
+
+static void shell_command_mkdir(
+    const char* name
+)
+{
+    int result;
+
+    if (
+        name == 0 ||
+        name[0] == '\0'
+    )
+    {
+        terminal_write(
+            "mkdir: missing directory name.\n"
+        );
+
+        return;
+    }
+
+    result =
+        filesystem_create_directory(name);
+
+    if (result == ATLASFS_SUCCESS)
+    {
+        return;
+    }
+
+    if (result == ATLASFS_ALREADY_EXISTS)
+    {
+        terminal_write(
+            "mkdir: directory already exists.\n"
+        );
+
+        return;
+    }
+
+    if (result == ATLASFS_NO_SPACE)
+    {
+        terminal_write(
+            "mkdir: filesystem is full.\n"
+        );
+
+        return;
+    }
+
+    terminal_write(
+        "mkdir: failed to create directory.\n"
+    );
+}
+
+static void shell_command_cat(
+    const char* name
+)
+{
+    uint8_t buffer[SHELL_FILE_BUFFER_SIZE];
+    uint32_t bytes_read;
+    uint32_t i;
+    int result;
+
+    if (
+        name == 0 ||
+        name[0] == '\0'
+    )
+    {
+        terminal_write(
+            "cat: missing file name.\n"
+        );
+
+        return;
+    }
+
+    result =
+        filesystem_read_file(
+            name,
+            buffer,
+            SHELL_FILE_BUFFER_SIZE,
+            &bytes_read
+        );
+
+    if (result != ATLASFS_SUCCESS)
+    {
+        terminal_write(
+            "cat: unable to read file.\n"
+        );
+
+        return;
+    }
+
+    for (
+        i = 0;
+        i < bytes_read;
+        i++
+    )
+    {
+        char character[2];
+
+        character[0] =
+            (char)buffer[i];
+
+        character[1] =
+            '\0';
+
+        terminal_write(character);
+    }
+
+    terminal_write("\n");
+}
+
+static void shell_command_write(
+    const char* name,
+    const char* text
+)
+{
+    int result;
+    uint32_t length;
+
+    if (
+        name == 0 ||
+        name[0] == '\0'
+    )
+    {
+        terminal_write(
+            "write: missing file name.\n"
+        );
+
+        return;
+    }
+
+    if (
+        text == 0 ||
+        text[0] == '\0'
+    )
+    {
+        terminal_write(
+            "write: missing text.\n"
+        );
+
+        return;
+    }
+
+    length = 0;
+
+    while (
+        text[length] != '\0'
+    )
+    {
+        length++;
+    }
+
+    result =
+        filesystem_write_file(
+            name,
+            (const uint8_t*)text,
+            length
+        );
+
+    if (result == ATLASFS_SUCCESS)
+    {
+        return;
+    }
+
+    if (result == ATLASFS_NOT_FOUND)
+    {
+        terminal_write(
+            "write: file not found.\n"
+        );
+
+        return;
+    }
+
+    if (result == ATLASFS_NO_SPACE)
+    {
+        terminal_write(
+            "write: not enough space.\n"
+        );
+
+        return;
+    }
+
+    terminal_write(
+        "write: failed to write file.\n"
+    );
+}
+
+static void shell_command_rm(
+    const char* name
+)
+{
+    int result;
+
+    if (
+        name == 0 ||
+        name[0] == '\0'
+    )
+    {
+        terminal_write(
+            "rm: missing file name.\n"
+        );
+
+        return;
+    }
+
+    result =
+        filesystem_delete(name);
+
+    if (result == ATLASFS_SUCCESS)
+    {
+        return;
+    }
+
+    if (result == ATLASFS_NOT_FOUND)
+    {
+        terminal_write(
+            "rm: file not found.\n"
+        );
+
+        return;
+    }
+
+    if (result == ATLASFS_IS_DIRECTORY)
+    {
+        terminal_write(
+            "rm: cannot remove directory.\n"
+        );
+
+        return;
+    }
+
+    terminal_write(
+        "rm: failed to remove file.\n"
+    );
+}
+
+static void shell_command_pwd(void)
+{
+    terminal_write(
+        filesystem_get_current_directory()
+    );
+
+    terminal_write("\n");
+}
+
+static void shell_command_cd(
+    const char* path
+)
+{
+    int result;
+
+    if (
+        path == 0 ||
+        path[0] == '\0'
+    )
+    {
+        path = "/";
+    }
+
+    result =
+        filesystem_change_directory(path);
+
+    if (
+        result == ATLASFS_SUCCESS
+    )
+    {
+        return;
+    }
+
+    if (
+        result == ATLASFS_NOT_FOUND
+    )
+    {
+        terminal_write(
+            "cd: directory not found.\n"
+        );
+
+        return;
+    }
+
+    if (
+        result == ATLASFS_NOT_DIRECTORY
+    )
+    {
+        terminal_write(
+            "cd: not a directory.\n"
+        );
+
+        return;
+    }
+
+    terminal_write(
+        "cd: invalid path.\n"
+    );
+}
+
+static void shell_command_rmdir(
+    const char* name
+)
+{
+    int result;
+
+    if (
+        name == 0 ||
+        name[0] == '\0'
+    )
+    {
+        terminal_write(
+            "rmdir: missing directory name.\n"
+        );
+
+        return;
+    }
+
+    result =
+        filesystem_remove_directory(name);
+
+    if (
+        result == ATLASFS_SUCCESS
+    )
+    {
+        return;
+    }
+
+    if (
+        result == ATLASFS_NOT_FOUND
+    )
+    {
+        terminal_write(
+            "rmdir: directory not found.\n"
+        );
+
+        return;
+    }
+
+    if (
+        result == ATLASFS_NOT_DIRECTORY
+    )
+    {
+        terminal_write(
+            "rmdir: not a directory.\n"
+        );
+
+        return;
+    }
+
+    if (
+        result == ATLASFS_DIRECTORY_NOT_EMPTY
+    )
+    {
+        terminal_write(
+            "rmdir: directory not empty.\n"
+        );
+
+        return;
+    }
+
+    terminal_write(
+        "rmdir: failed to remove directory.\n"
+    );
+}
+
 /*
  * Display the supplied arguments.
  */
@@ -529,6 +960,60 @@ static void shell_execute_command(ParsedCommand* command)
     else if (shell_string_equals(command->command, "sysinfo"))
     {
         shell_command_sysinfo();
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "ls"))
+    {
+        shell_command_ls();
+        return;
+    }
+
+    if (shell_string_equals(command->command, "touch"))
+    {
+        shell_command_touch(command->arguments[0]);
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "mkdir"))
+    {
+        shell_command_mkdir(command->arguments[0]);
+        return;
+    }
+
+    if (shell_string_equals(command->command, "cat"))
+    {
+        shell_command_cat(command->arguments[0]);
+        return;
+    }
+
+    else if (shell_string_equals(command->command, "rm"))
+    {
+        shell_command_rm(command->arguments[0]);
+        return;
+    }
+
+    if (shell_string_equals(command->command, "write"))
+    {
+        shell_command_write(command->arguments[0], command->arguments[1]);
+        return;
+    }
+
+    if (shell_string_equals(command->command, "pwd"))
+    {
+        shell_command_pwd();
+        return;
+    }
+
+    if (shell_string_equals(command->command, "cd"))
+    {
+        shell_command_cd(command->arguments[0]);
+        return;
+    }
+
+    if (shell_string_equals(command->command, "rmdir"))
+    {
+        shell_command_rmdir(command->arguments[0]);
         return;
     }
 

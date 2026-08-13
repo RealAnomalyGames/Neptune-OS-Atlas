@@ -101,7 +101,9 @@ void parser_parse(char* input, ParsedCommand* result)
         /*
          * Skip additional whitespace.
          */
-        while (parser_is_space(input[position]))
+        while (
+            input[position] == ' '
+        )
         {
             position++;
         }

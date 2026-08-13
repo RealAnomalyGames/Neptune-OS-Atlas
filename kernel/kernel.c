@@ -9,6 +9,8 @@
 #include "memory.h"
 #include "timer.h"
 #include "interrupts.h"
+#include "disk.h"
+#include "filesystem.h"
 
 void kernel_main(uint32_t multiboot_information)
 {
@@ -23,6 +25,35 @@ void kernel_main(uint32_t multiboot_information)
     timer_initialize();
 
     interrupts_initialize();
+
+    disk_initialize();
+
+    filesystem_initialize();
+
+    int filesystem_result;
+
+    filesystem_result =
+        filesystem_mount();
+
+    if (filesystem_result ==
+        ATLASFS_SUCCESS)
+    {
+        terminal_write("AtlasFS mounted.\n");
+    }
+    else if (
+        filesystem_result ==
+        ATLASFS_INVALID_FS)
+    {
+        terminal_write(
+            "AtlasFS: no valid filesystem.\n"
+        );
+    }
+    else
+    {
+        terminal_write(
+            "AtlasFS: mount failed.\n"
+        );
+    }
 
     keyboard_initialize();
     
