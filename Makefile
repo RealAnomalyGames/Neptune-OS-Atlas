@@ -21,7 +21,16 @@ KERNEL_OBJECTS = \
 	$(BUILD_DIR)/timer.o \
 	$(BUILD_DIR)/interrupts.o \
 	$(BUILD_DIR)/disk.o \
-	$(BUILD_DIR)/filesystem.o
+	$(BUILD_DIR)/filesystem.o \
+	$(BUILD_DIR)/task.o \
+	$(BUILD_DIR)/scheduler.o \
+	$(BUILD_DIR)/task_switch.o \
+	$(BUILD_DIR)/mouse.o \
+	$(BUILD_DIR)/idt.o \
+	$(BUILD_DIR)/pic.o \
+	$(BUILD_DIR)/interrupt_stubs.o \
+	$(BUILD_DIR)/gdt.o \
+	$(BUILD_DIR)/graphics.o
 
 KERNEL = $(BUILD_DIR)/kernel.bin
 
@@ -74,6 +83,33 @@ $(BUILD_DIR)/disk.o: kernel/disk.c | $(BUILD_DIR)
 
 $(BUILD_DIR)/filesystem.o: kernel/filesystem.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c kernel/filesystem.c -o $(BUILD_DIR)/filesystem.o
+
+$(BUILD_DIR)/task.o: kernel/task.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/task.c -o $(BUILD_DIR)/task.o
+
+$(BUILD_DIR)/scheduler.o: kernel/scheduler.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/scheduler.c -o $(BUILD_DIR)/scheduler.o
+
+$(BUILD_DIR)/task_switch.o: kernel/task_switch.s | $(BUILD_DIR)
+	$(AS) --32 kernel/task_switch.s -o $(BUILD_DIR)/task_switch.o
+
+$(BUILD_DIR)/mouse.o: kernel/mouse.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/mouse.c -o $(BUILD_DIR)/mouse.o
+
+$(BUILD_DIR)/idt.o: kernel/idt.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/idt.c -o $(BUILD_DIR)/idt.o
+
+$(BUILD_DIR)/pic.o: kernel/pic.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/pic.c -o $(BUILD_DIR)/pic.o
+
+$(BUILD_DIR)/interrupt_stubs.o: kernel/interrupt_stubs.s | $(BUILD_DIR)
+	$(AS) --32 kernel/interrupt_stubs.s -o $(BUILD_DIR)/interrupt_stubs.o
+
+$(BUILD_DIR)/gdt.o: kernel/gdt.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/gdt.c -o $(BUILD_DIR)/gdt.o
+
+$(BUILD_DIR)/graphics.o: kernel/graphics.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/graphics.c -o $(BUILD_DIR)/graphics.o
 
 $(KERNEL): $(KERNEL_OBJECTS)
 	$(LD) $(LDFLAGS) -o $(KERNEL) \

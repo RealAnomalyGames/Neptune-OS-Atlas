@@ -1,5 +1,6 @@
 #include "timer.h"
 #include "io.h"
+#include "scheduler.h"
 
 static volatile uint32_t timer_ticks = 0;
 
@@ -39,6 +40,8 @@ void timer_initialize(void)
 void timer_tick(void)
 {
     timer_ticks++;
+
+    scheduler_schedule();
 }
 
 uint32_t timer_get_ticks(void)

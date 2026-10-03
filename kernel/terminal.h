@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define TERMINAL_WIDTH 80
-#define TERMINAL_HEIGHT 25
+#define TERMINAL_HEIGHT 24
 
 void terminal_initialize(void);
 
@@ -21,5 +21,19 @@ void terminal_scroll(void);
 
 uint32_t terminal_get_row(void);
 uint32_t terminal_get_column(void);
+
+void terminal_write_at(
+    const char* string,
+    uint32_t row,
+    uint32_t column
+);
+
+void terminal_write_uint_at(
+    uint32_t value,
+    uint32_t row,
+    uint32_t column
+);
+
+void terminal_write_int(int32_t value);
 
 #endif

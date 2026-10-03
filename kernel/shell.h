@@ -8,6 +8,7 @@
 
 void shell_initialize(void);
 void shell_run(void);
+void shell_update(void);
 
 void shell_clear_buffer(void);
 
@@ -29,6 +30,9 @@ void shell_command_uptime(void);
 void shell_command_sysinfo(void);
 void shell_command_uname(ParsedCommand* command);
 void shell_command_echo(ParsedCommand* command);
+void shell_command_mouse(void);
+void shell_command_mousepos(void);
+void shell_command_mousebuttons(void);
 void shell_command_not_found(const char* command);
 
 #endif

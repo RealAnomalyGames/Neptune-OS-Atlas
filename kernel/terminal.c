@@ -162,6 +162,34 @@ void terminal_write(const char* string)
     }
 }
 
+void terminal_write_at(
+    const char* string,
+    uint32_t row,
+    uint32_t column
+)
+{
+    uint32_t i = 0;
+    uint32_t current_column = column;
+
+    while (string[i] != '\0')
+    {
+        if (current_column >= TERMINAL_WIDTH)
+        {
+            break;
+        }
+
+        terminal_put_entry_at(
+            string[i],
+            TERMINAL_DEFAULT_COLOR,
+            row,
+            current_column
+        );
+
+        current_column++;
+        i++;
+    }
+}
+
 void terminal_write_uint(uint32_t value)
 {
     char buffer[11];
@@ -189,6 +217,69 @@ void terminal_write_uint(uint32_t value)
         terminal_putchar(
             buffer[index]
         );
+    }
+}
+
+void terminal_write_int(int32_t value)
+{
+    if (value < 0)
+    {
+        terminal_putchar('-');
+
+        value = -value;
+    }
+
+    terminal_write_uint((uint32_t)value);
+}
+
+void terminal_write_uint_at(
+    uint32_t value,
+    uint32_t row,
+    uint32_t column
+)
+{
+    char buffer[11];
+    uint32_t index = 0;
+    uint32_t current_column = column;
+
+    if (value == 0)
+    {
+        terminal_put_entry_at(
+            '0',
+            TERMINAL_DEFAULT_COLOR,
+            row,
+            current_column
+        );
+
+        return;
+    }
+
+    while (value > 0)
+    {
+        buffer[index] =
+            '0' + (value % 10);
+
+        value /= 10;
+        index++;
+    }
+
+    while (index > 0)
+    {
+        if (current_column >= TERMINAL_WIDTH)
+        {
+            break;
+        }
+
+        index--;
+
+        terminal_put_entry_at(
+            buffer[index],
+            TERMINAL_DEFAULT_COLOR,
+            row,
+            current_column
+        );
+
+        current_column++;
     }
 }
 

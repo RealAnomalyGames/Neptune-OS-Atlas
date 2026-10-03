@@ -7,6 +7,8 @@
 #include "timer.h"
 #include "system.h"
 #include "filesystem.h"
+#include "task.h"
+#include "mouse.h"
 
 #define SHELL_FILE_BUFFER_SIZE 4096
 
@@ -64,6 +66,44 @@ static void shell_execute_current_command(void)
     shell_clear_buffer();
 }
 
+static const char* shell_task_state_name(TaskState state)
+{
+    switch (state)
+    {
+        case TASK_READY:
+            return "READY";
+
+        case TASK_RUNNING:
+            return "RUNNING";
+
+        case TASK_BLOCKED:
+            return "BLOCKED";
+
+        case TASK_TERMINATED:
+            return "TERMINATED";
+
+        default:
+            return "UNKNOWN";
+    }
+}
+
+static uint32_t shell_parse_u32(const char* text)
+{
+    uint32_t value;
+
+    value = 0;
+
+    while (*text >= '0' && *text <= '9')
+    {
+        value = value * 10;
+        value += (uint32_t)(*text - '0');
+
+        text++;
+    }
+
+    return value;
+}
+
 /*
  * Initialize the shell.
  */
@@ -77,7 +117,7 @@ void shell_initialize(void)
     }
 
     terminal_write("NEPTUNE OS ATLAS\n");
-    terminal_write("Build 007\n");
+    terminal_write("Build 008\n");
     terminal_write("\n");
 }
 
@@ -90,8 +130,18 @@ void shell_run(void)
 
     while (1)
     {
-        uint16_t key = keyboard_getkey();
+        shell_update();
+    }
+}
 
+void shell_update(void)
+{
+    uint16_t key;
+
+    key = keyboard_getkey();
+
+    if (key != 0)
+    {
         shell_process_key(key);
     }
 }
@@ -252,6 +302,12 @@ void shell_command_help(void)
     terminal_write("  pwd                 Show current directory\n");
     terminal_write("  rmdir <dor>         Remove empty directory\n");
     terminal_write("  echo                Display text\n");
+    terminal_write("  tasks               List running tasks\n");
+    terminal_write("  ps                  List running tasks\n");
+    terminal_write("  kill <id>           Terminate a task\n");
+    terminal_write("  mouse               Show mouse diagnostics\n");
+    terminal_write("  mousepos            Show mouse position\n");
+    terminal_write("  mousebuttons        Show mouse button states\n");
     
 }
 
@@ -356,6 +412,163 @@ void shell_command_uptime(void)
     terminal_write("\nUptime: ");
     terminal_write_uint(seconds);
     terminal_write(" seconds\n");
+}
+
+void shell_command_mousepos(void)
+{
+    CursorState cursor;
+
+    cursor_get_state(&cursor);
+
+    terminal_write("\nMouse Position\n");
+    terminal_write("--------------\n");
+
+    terminal_write("X: ");
+    terminal_write_uint((uint32_t)cursor.x);
+    terminal_write("\n");
+
+    terminal_write("Y: ");
+    terminal_write_uint((uint32_t)cursor.y);
+    terminal_write("\n");
+
+    terminal_write("Delta X: ");
+    terminal_write_int(mouse_get_delta_x());
+    terminal_write("\n");
+
+    terminal_write("Delta Y: ");
+    terminal_write_int(mouse_get_delta_y());
+    terminal_write("\n");
+
+    terminal_write("\n");
+}
+
+void shell_command_mousebuttons(void)
+{
+    terminal_write("\nMouse Buttons\n");
+    terminal_write("-------------\n");
+
+    terminal_write("Left:   ");
+
+    if (mouse_is_left_button_pressed())
+    {
+        terminal_write("Pressed");
+    }
+    else
+    {
+        terminal_write("Released");
+    }
+
+    terminal_write("\n");
+
+    terminal_write("Right:  ");
+
+    if (mouse_is_right_button_pressed())
+    {
+        terminal_write("Pressed");
+    }
+    else
+    {
+        terminal_write("Released");
+    }
+
+    terminal_write("\n");
+
+    terminal_write("Middle: ");
+
+    if (mouse_is_middle_button_pressed())
+    {
+        terminal_write("Pressed");
+    }
+    else
+    {
+        terminal_write("Released");
+    }
+
+    terminal_write("\n\n");
+}
+
+void shell_command_mouse(void)
+{
+    CursorState cursor;
+    MouseState mouse;
+
+    cursor_get_state(&cursor);
+    mouse_get_state(&mouse);
+
+    terminal_write("\nMouse Diagnostics\n");
+    terminal_write("-----------------\n");
+
+    terminal_write("Cursor X: ");
+    terminal_write_uint((uint32_t)cursor.x);
+    terminal_write("\n");
+
+    terminal_write("Cursor Y: ");
+    terminal_write_uint((uint32_t)cursor.y);
+    terminal_write("\n");
+
+    terminal_write("Visible:  ");
+
+    if (cursor.visible)
+    {
+        terminal_write("Yes");
+    }
+    else
+    {
+        terminal_write("No");
+    }
+
+    terminal_write("\n");
+
+    terminal_write("Delta X:  ");
+    terminal_write_int(mouse.delta_x);
+    terminal_write("\n");
+
+    terminal_write("Delta Y:  ");
+    terminal_write_int(mouse.delta_y);
+    terminal_write("\n");
+
+    terminal_write("Buttons:  ");
+    terminal_write_uint((uint32_t)mouse.buttons);
+    terminal_write("\n");
+
+    terminal_write("Left:     ");
+
+    if (mouse.left_button)
+    {
+        terminal_write("Pressed");
+    }
+    else
+    {
+        terminal_write("Released");
+    }
+
+    terminal_write("\n");
+
+    terminal_write("Right:    ");
+
+    if (mouse.right_button)
+    {
+        terminal_write("Pressed");
+    }
+    else
+    {
+        terminal_write("Released");
+    }
+
+    terminal_write("\n");
+
+    terminal_write("Middle:   ");
+
+    if (mouse.middle_button)
+    {
+        terminal_write("Pressed");
+    }
+    else
+    {
+        terminal_write("Released");
+    }
+
+    terminal_write("\n\n");
 }
 
 void shell_command_uname(ParsedCommand* command)
@@ -871,6 +1084,86 @@ static void shell_command_rmdir(
     );
 }
 
+void shell_command_tasks(void)
+{
+    uint32_t i;
+    uint32_t count;
+    AtlasTask* task;
+
+    count = 0;
+
+    terminal_write("ID   STATE       PRIORITY   NAME\n");
+    terminal_write("--------------------------------\n");
+
+    for (i = 0; i < ATLAS_MAX_TASKS; i++)
+    {
+        task = task_get_by_index(i);
+
+        if (task == 0)
+        {
+            continue;
+        }
+
+        if (task->state == TASK_TERMINATED)
+        {
+            continue;
+        }
+
+        terminal_write_uint(task->id);
+        terminal_write("    ");
+
+        terminal_write(shell_task_state_name(task->state));
+        terminal_write("       ");
+
+        terminal_write_uint(task->priority);
+        terminal_write("          ");
+
+        terminal_write(task->name);
+        terminal_write("\n");
+
+        count++;
+    }
+
+    terminal_write("\nActive tasks: ");
+    terminal_write_uint(count);
+    terminal_write("\n");
+}
+
+void shell_command_kill(const char* argument)
+{
+    TaskID id;
+    AtlasTask* task;
+    AtlasTask* current;
+
+    if (argument == 0 || argument[0] == '\0')
+    {
+        terminal_write("Usage: kill <task id>\n");
+        return;
+    }
+
+    id = shell_parse_u32(argument);
+
+    task = task_get(id);
+
+    if (task == 0)
+    {
+        terminal_write("Task not found.\n");
+        return;
+    }
+
+    current = task_get_current();
+
+    if (current != 0 && current->id == id)
+    {
+        terminal_write("Cannot terminate the current task.\n");
+        return;
+    }
+
+    task_terminate(id);
+
+    terminal_write("Task terminated.\n");
+}
+
 /*
  * Display the supplied arguments.
  */
@@ -1020,6 +1313,50 @@ static void shell_execute_command(ParsedCommand* command)
     if (shell_string_equals(command->command, "echo"))
     {
         shell_command_echo(command);
+        return;
+    }
+
+    if (shell_string_equals(command->command, "tasks"))
+    {
+        shell_command_tasks();
+        return;
+    }
+
+    if (shell_string_equals(command->command, "ps"))
+    {
+        shell_command_tasks();
+        return;
+    }
+
+    if (shell_string_equals(command->command, "kill"))
+    {
+        if (command->argument_count < 1)
+        {
+            shell_command_kill(0);
+        }
+        else
+        {
+            shell_command_kill(command->arguments[0]);
+        }
+
+        return;
+    }
+
+        if (shell_string_equals(command->command, "mouse"))
+    {
+        shell_command_mouse();
+        return;
+    }
+
+    if (shell_string_equals(command->command, "mousepos"))
+    {
+        shell_command_mousepos();
+        return;
+    }
+
+    if (shell_string_equals(command->command, "mousebuttons"))
+    {
+        shell_command_mousebuttons();
         return;
     }
 
