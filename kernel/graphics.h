@@ -19,6 +19,8 @@
 
 void graphics_initialize(void);
 
+void graphics_present(void);
+
 void graphics_set_mode_13h(void);
 
 void graphics_clear(uint8_t color);

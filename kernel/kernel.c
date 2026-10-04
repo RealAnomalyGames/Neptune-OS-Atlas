@@ -16,7 +16,10 @@
 #include "mouse.h"
 #include "pic.h"
 #include "gdt.h"
+#include "desktop.h"
 #include "graphics.h"
+#include "window.h"
+#include "taskbar.h"
 
 static void kernel_task(void)
 {
@@ -25,144 +28,37 @@ static void kernel_task(void)
     }
 }
 
-static void atlas_draw_screen(void)
-{
-    graphics_clear(
-        ATLAS_COLOR_DARK_BLUE
-    );
-
-    graphics_fill_rect(
-        0,
-        0,
-        GRAPHICS_WIDTH,
-        18,
-        ATLAS_COLOR_BLUE
-    );
-
-    graphics_draw_text(
-        8,
-        5,
-        "ATLAS",
-        ATLAS_COLOR_WHITE
-    );
-
-    graphics_draw_text(
-        280,
-        5,
-        "009",
-        ATLAS_COLOR_CYAN
-    );
-
-    graphics_draw_text(
-        16,
-        28,
-        "NEPTUNE OS ATLAS",
-        ATLAS_COLOR_WHITE
-    );
-
-    graphics_draw_text(
-        16,
-        40,
-        "GRAPHICAL SYSTEM",
-        ATLAS_COLOR_CYAN
-    );
-
-    graphics_draw_rect(
-        12,
-        58,
-        296,
-        82,
-        ATLAS_COLOR_CYAN
-    );
-
-    graphics_draw_text(
-        20,
-        66,
-        "SYSTEM STATUS",
-        ATLAS_COLOR_WHITE
-    );
-
-    graphics_draw_text(
-        20,
-        82,
-        "GRAPHICS       ONLINE",
-        ATLAS_COLOR_CYAN
-    );
-
-    graphics_draw_text(
-        20,
-        94,
-        "FRAMEBUFFER    320 X 200",
-        ATLAS_COLOR_WHITE
-    );
-
-    graphics_draw_text(
-        20,
-        106,
-        "DISPLAY        VGA MODE 13H",
-        ATLAS_COLOR_WHITE
-    );
-
-    graphics_draw_text(
-        20,
-        118,
-        "FONT           8 X 8 ASCII",
-        ATLAS_COLOR_WHITE
-    );
-
-    graphics_fill_rect(
-        20,
-        128,
-        6,
-        6,
-        ATLAS_COLOR_GREEN
-    );
-
-    graphics_draw_text(
-        32,
-        128,
-        "SYSTEM READY",
-        ATLAS_COLOR_GREEN
-    );
-
-    graphics_fill_rect(
-        0,
-        182,
-        GRAPHICS_WIDTH,
-        18,
-        ATLAS_COLOR_BLUE
-    );
-
-    graphics_draw_text(
-        8,
-        187,
-        "NEPTUNE CORPORATION",
-        ATLAS_COLOR_WHITE
-    );
-
-    graphics_draw_text(
-        256,
-        187,
-        "ATLAS 009",
-        ATLAS_COLOR_CYAN
-    );
-}
-
-static void atlas_draw_cursor(void)
-{
-    graphics_draw_cursor(
-        cursor_get_x(),
-        cursor_get_y()
-    );
-}
-
 void kernel_main(uint32_t multiboot_information)
 {
+    uint8_t previous_left_button;
+    uint8_t current_left_button;
+
+    int32_t test_window_id;
+    previous_left_button = 0;
+    current_left_button = 0;
+
     gdt_initialize();
 
     graphics_initialize();
 
-    atlas_draw_screen();
+    window_manager_initialize();
+
+    desktop_initialize();
+
+    window_create(
+        70,
+        55,
+        180,
+        90,
+        "Atlas Test"
+    );
+
+    if (test_window_id >= 0)
+    {
+        window_set_active(
+            (uint32_t)test_window_id
+        );
+    }
 
     interrupts_initialize();
 
@@ -176,43 +72,133 @@ void kernel_main(uint32_t multiboot_information)
 
     pic_unmask_irq(12);
 
-    graphics_draw_cursor(
-        cursor_get_x(),
-        cursor_get_y()
-    );
+    window_manager_redraw();
 
     interrupts_enable();
 
-    int32_t previous_cursor_x;
-    int32_t previous_cursor_y;
-
-    previous_cursor_x = cursor_get_x();
-    previous_cursor_y = cursor_get_y();
-
     while (1)
     {
-        int32_t current_cursor_x;
-        int32_t current_cursor_y;
+        int32_t mouse_x;
+        int32_t mouse_y;
+        int32_t window_id;
 
-        current_cursor_x = cursor_get_x();
-        current_cursor_y = cursor_get_y();
+        current_left_button =
+            mouse_is_left_button_pressed();
 
+        mouse_x = cursor_get_x();
+        mouse_y = cursor_get_y();
+
+        /*
+         * Left mouse button was just pressed.
+         */
         if (
-            current_cursor_x != previous_cursor_x ||
-            current_cursor_y != previous_cursor_y
+            current_left_button != 0 &&
+            previous_left_button == 0
         )
         {
-            atlas_draw_screen();
-
-            graphics_draw_cursor(
-                current_cursor_x,
-                current_cursor_y
+            window_id = window_get_at_position(
+                mouse_x,
+                mouse_y
             );
 
-            previous_cursor_x = current_cursor_x;
-            previous_cursor_y = current_cursor_y;
+            if (window_id >= 0)
+            {
+                Window* window;
+
+                window = window_get(
+                    (uint32_t)window_id
+                );
+
+                if (window != 0)
+                {
+                    /*
+                     * Only the title bar starts a drag.
+                     */
+                    if (
+                        mouse_y >= window->y &&
+                        mouse_y < window->y + 12
+                    )
+                    {
+                        window_begin_drag(
+                            (uint32_t)window_id,
+                            mouse_x,
+                            mouse_y
+                        );
+                    }
+                    else
+                    {
+                        window_set_active(
+                            (uint32_t)window_id
+                        );
+                        }
+                }
+            }
+            else
+            {
+                desktop_handle_mouse_click(
+                    mouse_x,
+                    mouse_y
+                );
+            }
         }
 
-        __asm__ volatile ("hlt");
+        /*
+         * Window is currently being dragged.
+         */
+        if (current_left_button != 0)
+        {
+            uint32_t active_window;
+
+            active_window = window_get_active();
+
+            if (
+                active_window != 0 &&
+                window_is_dragging(active_window) != 0
+            )
+            {
+                window_update_drag(
+                    active_window,
+                    mouse_x,
+                    mouse_y
+                );
+            }
+        }
+
+        /*
+         * Left mouse button was released.
+         */
+        if (
+            current_left_button == 0 &&
+            previous_left_button != 0
+        )
+        {
+            uint32_t active_window;
+
+            active_window = window_get_active();
+
+            if (active_window != 0)
+            {
+                window_end_drag(active_window);
+            }
+        }
+
+        /*
+         * Redraw the window manager whenever the
+         * mouse position or button state changes.
+         */
+        if (
+            mouse_get_delta_x() != 0 ||
+            mouse_get_delta_y() != 0 ||
+            current_left_button != previous_left_button ||
+            window_manager_needs_redraw() != 0
+        )
+        {
+            window_manager_redraw();
+            window_manager_clear_redraw();
+        }
+
+        previous_left_button = current_left_button;
+
+        mouse_clear_delta();
     }
 }

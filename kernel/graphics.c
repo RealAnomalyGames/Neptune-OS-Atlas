@@ -19,6 +19,10 @@
 
 #define VGA_FRAMEBUFFER       ((uint8_t*)0xA0000)
 
+static uint8_t graphics_back_buffer[
+    GRAPHICS_WIDTH * GRAPHICS_HEIGHT
+];
+
 #define VGA_DAC_WRITE_INDEX 0x3C8
 #define VGA_DAC_DATA        0x3C9
 
@@ -749,9 +753,28 @@ void graphics_clear(uint8_t color)
 {
     uint32_t i;
 
-    for (i = 0; i < GRAPHICS_WIDTH * GRAPHICS_HEIGHT; i++)
+    for (
+        i = 0;
+        i < GRAPHICS_WIDTH * GRAPHICS_HEIGHT;
+        i++
+    )
     {
-        VGA_FRAMEBUFFER[i] = color;
+        graphics_back_buffer[i] = color;
+    }
+}
+
+void graphics_present(void)
+{
+    uint32_t i;
+
+    for (
+        i = 0;
+        i < GRAPHICS_WIDTH * GRAPHICS_HEIGHT;
+        i++
+    )
+    {
+        VGA_FRAMEBUFFER[i] =
+            graphics_back_buffer[i];
     }
 }
 
@@ -776,7 +799,7 @@ void graphics_put_pixel(
     offset =
         ((uint32_t)y * GRAPHICS_WIDTH) + x;
 
-    VGA_FRAMEBUFFER[offset] = color;
+    graphics_back_buffer[offset] = color;
 }
 
 void graphics_draw_char(

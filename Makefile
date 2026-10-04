@@ -30,7 +30,10 @@ KERNEL_OBJECTS = \
 	$(BUILD_DIR)/pic.o \
 	$(BUILD_DIR)/interrupt_stubs.o \
 	$(BUILD_DIR)/gdt.o \
-	$(BUILD_DIR)/graphics.o
+	$(BUILD_DIR)/graphics.o \
+	$(BUILD_DIR)/window.o \
+	$(BUILD_DIR)/desktop.o \
+	$(BUILD_DIR)/taskbar.o
 
 KERNEL = $(BUILD_DIR)/kernel.bin
 
@@ -110,6 +113,15 @@ $(BUILD_DIR)/gdt.o: kernel/gdt.c | $(BUILD_DIR)
 
 $(BUILD_DIR)/graphics.o: kernel/graphics.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c kernel/graphics.c -o $(BUILD_DIR)/graphics.o
+
+$(BUILD_DIR)/window.o: kernel/window.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/window.c -o $(BUILD_DIR)/window.o
+
+$(BUILD_DIR)/desktop.o: kernel/desktop.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/desktop.c -o $(BUILD_DIR)/desktop.o
+
+$(BUILD_DIR)/taskbar.o: kernel/taskbar.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/taskbar.c -o $(BUILD_DIR)/taskbar.o
 
 $(KERNEL): $(KERNEL_OBJECTS)
 	$(LD) $(LDFLAGS) -o $(KERNEL) \
