@@ -400,7 +400,7 @@ void window_render(uint32_t id)
     );
 
     /*
-     * Title bar.
+     * Title bar and client area.
      */
     if (window->height >= 12)
     {
@@ -433,27 +433,6 @@ void window_render(uint32_t id)
             (uint16_t)window->y + 2,
             "X",
             WINDOW_TITLE_COLOR
-        );
-
-        graphics_draw_text(
-            window->x + 8,
-            window->y + 24,
-            "Atlas Window",
-            WINDOW_TITLE_COLOR
-        );
-
-        graphics_draw_text(
-            window->x + 8,
-            window->y + 36,
-            "Build 012",
-            ATLAS_COLOR_CYAN
-        );
-
-        graphics_draw_text(
-            window->x + 8,
-            window->y + 52,
-            "Drag this window",
-            ATLAS_COLOR_WHITE
         );
     }
 }
