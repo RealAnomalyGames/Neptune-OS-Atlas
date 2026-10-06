@@ -22,6 +22,8 @@ typedef struct
     uint8_t visible;
     uint8_t active;
 
+    uint32_t owner_application_id;
+
     char title[WINDOW_TITLE_LENGTH];
 } Window;
 
@@ -92,9 +94,24 @@ int32_t window_get_at_position(
     int32_t y
 );
 
+uint8_t window_is_close_button_at_position(
+    uint32_t id,
+    int32_t x,
+    int32_t y
+);
+
 void window_manager_redraw(void);
 
 uint8_t window_manager_needs_redraw(void);
 void window_manager_clear_redraw(void);
+
+void window_set_owner(
+    uint32_t id,
+    uint32_t application_id
+);
+
+uint32_t window_get_owner(
+    uint32_t id
+);
 
 #endif

@@ -1,5 +1,7 @@
 #include "taskbar.h"
 #include "window.h"
+#include "application.h"
+#include "settings.h"
 
 #define TASKBAR_BACKGROUND_COLOR ATLAS_COLOR_BLUE
 #define TASKBAR_BUTTON_COLOR     ATLAS_COLOR_DARK_BLUE
@@ -15,10 +17,14 @@
 #define TASKBAR_MAX_BUTTONS      3
 
 static uint8_t taskbar_initialized;
+static uint8_t start_menu_open;
+
+static void taskbar_render_start_menu(void);
 
 void taskbar_initialize(void)
 {
     taskbar_initialized = 1;
+    start_menu_open = 0;
 }
 
 uint8_t taskbar_is_initialized(void)
@@ -93,6 +99,7 @@ void taskbar_render(void)
     {
         uint32_t window_id;
         Window* window;
+        Application* application;
         uint32_t button_x;
         uint8_t button_color;
         char title[9];
@@ -156,15 +163,54 @@ void taskbar_render(void)
         );
 
         /*
-         * Copy up to eight characters of the window title.
+         * Find the application that owns this window.
          */
-        for (title_index = 0; title_index < 8; title_index++)
-        {
-            title[title_index] = window->title[title_index];
+        application = application_get_by_window(
+            window_id
+        );
 
-            if (window->title[title_index] == '\0')
+        /*
+         * Use the application name when available.
+         * Otherwise, use the window title.
+         */
+        if (application != 0)
+        {
+            for (
+                title_index = 0;
+                title_index < 8;
+                title_index++
+            )
             {
-                break;
+                title[title_index] =
+                    application->name[title_index];
+
+                if (
+                    application->name[title_index] ==
+                    '\0'
+                )
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (
+                title_index = 0;
+                title_index < 8;
+                title_index++
+            )
+            {
+                title[title_index] =
+                    window->title[title_index];
+
+                if (
+                    window->title[title_index] ==
+                    '\0'
+                )
+                {
+                    break;
+                }
             }
         }
 
@@ -186,7 +232,131 @@ void taskbar_render(void)
     graphics_draw_text(
         272,
         TASKBAR_Y + 5,
-        "011",
+        "013",
         TASKBAR_ACCENT_COLOR
     );
+
+    taskbar_render_start_menu();
+}
+
+static void taskbar_render_start_menu(void)
+{
+    if (start_menu_open == 0)
+    {
+        return;
+    }
+
+    graphics_fill_rect(
+        4,
+        TASKBAR_Y - 78,
+        150,
+        76,
+        TASKBAR_BUTTON_COLOR
+    );
+
+    graphics_draw_rect(
+        4,
+        TASKBAR_Y - 78,
+        150,
+        76,
+        TASKBAR_BORDER_COLOR
+    );
+
+    graphics_draw_text(
+        12,
+        TASKBAR_Y - 68,
+        "ATLAS",
+        TASKBAR_TEXT_COLOR
+    );
+
+    graphics_draw_text(
+        12,
+        TASKBAR_Y - 48,
+        "Settings",
+        TASKBAR_TEXT_COLOR
+    );
+
+    graphics_draw_text(
+        12,
+        TASKBAR_Y - 30,
+        "About Atlas",
+        TASKBAR_TEXT_COLOR
+    );
+
+    graphics_draw_text(
+        12,
+        TASKBAR_Y - 12,
+        "Shutdown",
+        TASKBAR_TEXT_COLOR
+    );
+}
+
+void taskbar_handle_mouse_click(int32_t x, int32_t y)
+{
+    int32_t settings_id;
+
+    if (taskbar_initialized == 0)
+    {
+        return;
+    }
+
+    /*
+     * ATLAS Start button.
+     */
+    if (
+        x >= 4 &&
+        x < 52 &&
+        y >= TASKBAR_Y + 2 &&
+        y < TASKBAR_Y + 16
+    )
+    {
+        start_menu_open =
+            start_menu_open == 0;
+
+        window_manager_redraw();
+        return;
+    }
+
+    /*
+     * Settings menu item.
+     */
+    if (start_menu_open != 0)
+    {
+        if (
+            x >= 4 &&
+            x < 154 &&
+            y >= TASKBAR_Y - 54 &&
+            y < TASKBAR_Y - 36
+        )
+        {
+            settings_id = settings_launch();
+
+            if (settings_id >= 0)
+            {
+                start_menu_open = 0;
+            }
+
+            window_manager_redraw();
+            return;
+        }
+
+        /*
+         * Clicking outside the Start Menu closes it.
+         */
+        if (
+            x < 4 ||
+            x >= 154 ||
+            y < TASKBAR_Y - 78 ||
+            y >= TASKBAR_Y
+        )
+        {
+            start_menu_open = 0;
+            window_manager_redraw();
+        }
+    }
+}
+
+uint8_t taskbar_is_start_menu_open(void)
+{
+    return start_menu_open;
 }

@@ -1,6 +1,7 @@
 #include "mouse.h"
 #include "io.h"
 #include "terminal.h"
+#include "settings.h"
 
 #define MOUSE_DATA_PORT       0x60
 #define MOUSE_STATUS_PORT     0x64
@@ -337,28 +338,45 @@ void cursor_initialize(void)
 
 void cursor_update(void)
 {
-    cursor_state.x += mouse_state.delta_x;
-    cursor_state.y -= mouse_state.delta_y;
+    int32_t movement_x;
+    int32_t movement_y;
+    uint8_t mouse_speed;
+
+    movement_x = mouse_state.delta_x;
+    movement_y = mouse_state.delta_y;
+
+    mouse_speed = settings_get_mouse_speed();
+
+    if (mouse_speed == SETTINGS_MOUSE_SPEED_SLOW)
+    {
+        movement_x /= 4;
+        movement_y /= 4;
+    }
+    else if (mouse_speed == SETTINGS_MOUSE_SPEED_NORMAL)
+    {
+        movement_x /= 2;
+        movement_y /= 2;
+    }
+    else
+    {
+        movement_x /= 1;
+        movement_y /= 1;
+    }
+
+    cursor_state.x += movement_x;
+    cursor_state.y -= movement_y;
 
     if (cursor_state.x < MOUSE_MIN_X)
-    {
         cursor_state.x = MOUSE_MIN_X;
-    }
 
     if (cursor_state.x > MOUSE_MAX_X)
-    {
         cursor_state.x = MOUSE_MAX_X;
-    }
 
     if (cursor_state.y < MOUSE_MIN_Y)
-    {
         cursor_state.y = MOUSE_MIN_Y;
-    }
 
     if (cursor_state.y > MOUSE_MAX_Y)
-    {
         cursor_state.y = MOUSE_MAX_Y;
-    }
 }
 
 void cursor_get_state(CursorState* state)

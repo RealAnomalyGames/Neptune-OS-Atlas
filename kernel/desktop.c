@@ -77,17 +77,14 @@ void desktop_render(void)
     graphics_draw_text(
         272,
         5,
-        "011",
+        "013",
         DESKTOP_ACCENT_COLOR
     );
 
     taskbar_render();
 }
 
-void desktop_handle_mouse_click(
-    int32_t x,
-    int32_t y
-)
+void desktop_handle_mouse_click(int32_t x, int32_t y)
 {
     int32_t window_id;
 
@@ -96,25 +93,33 @@ void desktop_handle_mouse_click(
         return;
     }
 
-    window_id = window_get_at_position(
-        x,
-        y
-    );
+    if (
+        y >= TASKBAR_Y &&
+        y < TASKBAR_Y + TASKBAR_HEIGHT
+    )
+    {
+        taskbar_handle_mouse_click(x, y);
+        return;
+    }
 
-    /*
-     * A window was clicked.
-     *
-     * The Window Manager handles the
-     * actual window interaction.
-     */
+    if (
+        taskbar_is_start_menu_open() != 0 &&
+        x >= 4 &&
+        x < 154 &&
+        y >= TASKBAR_Y - 78 &&
+        y < TASKBAR_Y
+    )
+    {
+        taskbar_handle_mouse_click(x, y);
+        return;
+    }
+
+    window_id = window_get_at_position(x, y);
+
     if (window_id >= 0)
     {
         return;
     }
 
-    /*
-     * Nothing was clicked, so the
-     * Desktop receives the click.
-     */
     window_set_active(0);
 }

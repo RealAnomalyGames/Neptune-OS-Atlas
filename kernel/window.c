@@ -2,6 +2,7 @@
 #include "graphics.h"
 #include "mouse.h"
 #include "desktop.h"
+#include "application.h"
 
 #define WINDOW_BORDER_COLOR       ATLAS_COLOR_CYAN
 #define WINDOW_TITLE_BAR_COLOR    ATLAS_COLOR_BLUE
@@ -43,6 +44,7 @@ void window_manager_initialize(void)
         windows[i].height = 0;
         windows[i].visible = 0;
         windows[i].active = 0;
+        windows[i].owner_application_id = 0;
         windows[i].title[0] = '\0';
     }
 }
@@ -93,6 +95,7 @@ int32_t window_create(
 
             windows[i].visible = 1;
             windows[i].active = 0;
+            windows[i].owner_application_id = 0;
 
             for (
                 j = 0;
@@ -164,6 +167,7 @@ void window_destroy(uint32_t id)
             windows[i].height = 0;
             windows[i].visible = 0;
             windows[i].active = 0;
+            windows[i].owner_application_id = 0;
             windows[i].title[0] = '\0';
 
             break;
@@ -408,10 +412,26 @@ void window_render(uint32_t id)
             WINDOW_TITLE_BAR_COLOR
         );
 
+        graphics_fill_rect(
+            window->x + 1,
+            window->y + 11,
+            window->width - 2,
+            window->height - 12,
+            WINDOW_BACKGROUND_COLOR
+        );
+
         graphics_draw_text(
             (uint16_t)window->x + 5,
             (uint16_t)window->y + 2,
             window->title,
+            WINDOW_TITLE_COLOR
+        );
+
+        graphics_draw_text(
+            (uint16_t)window->x +
+                (uint16_t)window->width - 10,
+            (uint16_t)window->y + 2,
+            "X",
             WINDOW_TITLE_COLOR
         );
 
@@ -425,7 +445,7 @@ void window_render(uint32_t id)
         graphics_draw_text(
             window->x + 8,
             window->y + 36,
-            "Build 011",
+            "Build 012",
             ATLAS_COLOR_CYAN
         );
 
@@ -441,12 +461,23 @@ void window_render(uint32_t id)
 void window_render_all(void)
 {
     uint32_t i;
+    uint32_t window_id;
+    uint32_t application_id;
 
     for (i = 0; i < WINDOW_MAX_COUNT; i++)
     {
         if (window_z_order[i] != 0)
         {
-            window_render(window_z_order[i]);
+            window_id = window_z_order[i];
+
+            window_render(window_id);
+
+            application_id = window_get_owner(window_id);
+
+            if (application_id != 0)
+            {
+                application_render(application_id);
+            }
         }
     }
 }
@@ -648,6 +679,64 @@ int32_t window_get_at_position(
     return -1;
 }
 
+uint8_t window_is_close_button_at_position(
+    uint32_t id,
+    int32_t x,
+    int32_t y
+)
+{
+    Window* window;
+    int32_t button_x;
+
+    window = window_get(id);
+
+    if (window == 0)
+    {
+        return 0;
+    }
+
+    if (window->visible == 0)
+    {
+        return 0;
+    }
+
+    if (window->width < 20)
+    {
+        return 0;
+    }
+
+    /*
+     * Close button occupies the rightmost
+     * 10 pixels of the title bar.
+     */
+    button_x =
+        window->x +
+        (int32_t)window->width -
+        11;
+
+    if (x < button_x)
+    {
+        return 0;
+    }
+
+    if (x >= window->x + (int32_t)window->width - 1)
+    {
+        return 0;
+    }
+
+    if (y < window->y + 1)
+    {
+        return 0;
+    }
+
+    if (y >= window->y + 11)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
 void window_begin_drag(
     uint32_t id,
     int32_t mouse_x,
@@ -744,10 +833,13 @@ void window_manager_redraw(void)
     /*
      * Draw the cursor last.
      */
-    graphics_draw_cursor(
-        cursor_get_x(),
-        cursor_get_y()
-    );
+    if (cursor_is_visible() != 0)
+    {
+        graphics_draw_cursor(
+            cursor_get_x(),
+            cursor_get_y()
+        );
+    }
 
     /*
      * Present the completed frame.
@@ -763,4 +855,38 @@ uint8_t window_manager_needs_redraw(void)
 void window_manager_clear_redraw(void)
 {
     window_redraw_needed = 0;
+}
+
+void window_set_owner(
+    uint32_t id,
+    uint32_t application_id
+)
+{
+    Window* window;
+
+    window = window_get(id);
+
+    if (window == 0)
+    {
+        return;
+    }
+
+    window->owner_application_id =
+        application_id;
+}
+
+uint32_t window_get_owner(
+    uint32_t id
+)
+{
+    Window* window;
+
+    window = window_get(id);
+
+    if (window == 0)
+    {
+        return 0;
+    }
+
+    return window->owner_application_id;
 }

@@ -20,6 +20,8 @@
 #include "graphics.h"
 #include "window.h"
 #include "taskbar.h"
+#include "application.h"
+#include "settings.h"
 
 static void kernel_task(void)
 {
@@ -33,7 +35,6 @@ void kernel_main(uint32_t multiboot_information)
     uint8_t previous_left_button;
     uint8_t current_left_button;
 
-    int32_t test_window_id;
     previous_left_button = 0;
     current_left_button = 0;
 
@@ -45,25 +46,18 @@ void kernel_main(uint32_t multiboot_information)
 
     desktop_initialize();
 
-    window_create(
-        70,
-        55,
-        180,
-        90,
-        "Atlas Test"
-    );
+    application_manager_initialize();
 
-    if (test_window_id >= 0)
-    {
-        window_set_active(
-            (uint32_t)test_window_id
-        );
-    }
+    settings_manager_initialize();
 
     interrupts_initialize();
 
     mouse_initialize();
     cursor_initialize();
+
+    cursor_set_visible(
+        settings_get_cursor_visible()
+    );
 
     interrupts_register_handler(
         IRQ12,
@@ -85,8 +79,29 @@ void kernel_main(uint32_t multiboot_information)
         current_left_button =
             mouse_is_left_button_pressed();
 
+        if (current_left_button != 0)
+        {
+            terminal_write_at(
+                "LEFT DOWN",
+                0,
+                0
+            );
+        }
+        else
+        {
+            terminal_write_at(
+                "LEFT UP  ",
+                0,
+                0
+            );
+        }
+
         mouse_x = cursor_get_x();
         mouse_y = cursor_get_y();
+
+        cursor_set_visible(
+            settings_get_cursor_visible()
+        );
 
         /*
          * Left mouse button was just pressed.
@@ -104,6 +119,7 @@ void kernel_main(uint32_t multiboot_information)
             if (window_id >= 0)
             {
                 Window* window;
+                uint32_t application_id;
 
                 window = window_get(
                     (uint32_t)window_id
@@ -112,9 +128,37 @@ void kernel_main(uint32_t multiboot_information)
                 if (window != 0)
                 {
                     /*
-                     * Only the title bar starts a drag.
+                     * Close button requires an actual
+                     * left-button press.
                      */
                     if (
+                        current_left_button != 0 &&
+                        window_is_close_button_at_position(
+                            (uint32_t)window_id,
+                            mouse_x,
+                            mouse_y
+                        ) != 0
+                    )
+                    {
+                        application_id =
+                            window_get_owner(
+                                (uint32_t)window_id
+                            );
+
+                        if (application_id != 0)
+                        {
+                            application_close(
+                                application_id
+                            );
+                        }
+                        else
+                        {
+                            window_destroy(
+                                (uint32_t)window_id
+                            );
+                        }
+                    }
+                    else if (
                         mouse_y >= window->y &&
                         mouse_y < window->y + 12
                     )
@@ -130,7 +174,7 @@ void kernel_main(uint32_t multiboot_information)
                         window_set_active(
                             (uint32_t)window_id
                         );
-                        }
+                    }
                 }
             }
             else
