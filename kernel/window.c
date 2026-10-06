@@ -535,6 +535,16 @@ uint32_t window_get_z_order(uint32_t id)
     return WINDOW_MAX_COUNT;
 }
 
+uint32_t window_get_z_order_at(uint32_t position)
+{
+    if (position >= WINDOW_MAX_COUNT)
+    {
+        return 0;
+    }
+
+    return window_z_order[position];
+}
+
 void window_set_active(uint32_t id)
 {
     uint32_t i;

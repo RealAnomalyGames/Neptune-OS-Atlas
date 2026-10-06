@@ -64,6 +64,7 @@ void window_render_all(void);
 
 void window_bring_to_front(uint32_t id);
 uint32_t window_get_z_order(uint32_t id);
+uint32_t window_get_z_order_at(uint32_t position);
 
 void window_set_active(uint32_t id);
 uint32_t window_get_active(void);

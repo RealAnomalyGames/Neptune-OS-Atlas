@@ -117,7 +117,6 @@ void settings_render(uint32_t application_id)
     Application* application;
     Window* window;
     const char* mouse_speed_text;
-    uint32_t application_count;
 
     application = application_get(
         (uint32_t)application_id
@@ -159,8 +158,6 @@ void settings_render(uint32_t application_id)
         mouse_speed_text = "NORMAL";
     }
 
-    application_count = application_get_count();
-
     /*
      * Settings heading.
      */
@@ -189,7 +186,7 @@ void settings_render(uint32_t application_id)
     );
 
     graphics_draw_text(
-        window->x + 70,
+        window->x + 170,
         window->y + 56,
         settings_get_cursor_visible() != 0
             ? "[ON]"
@@ -205,7 +202,7 @@ void settings_render(uint32_t application_id)
     );
 
     graphics_draw_text(
-        window->x + 70,
+        window->x + 170,
         window->y + 70,
         "DEFAULT",
         ATLAS_COLOR_WHITE
@@ -224,19 +221,19 @@ void settings_render(uint32_t application_id)
     graphics_draw_text(
         window->x + 16,
         window->y + 102,
-        "Mouse Speed",
+        "Mouse Spd",
         ATLAS_COLOR_WHITE
     );
 
     graphics_draw_text(
-        window->x + 88,
+        window->x + 100,
         window->y + 102,
         mouse_speed_text,
         ATLAS_COLOR_WHITE
     );
 
     graphics_draw_text(
-        window->x + 150,
+        window->x + 170,
         window->y + 102,
         "[CLICK]",
         ATLAS_COLOR_CYAN

@@ -105,7 +105,7 @@ void taskbar_render(void)
         char title[9];
         uint32_t title_index;
 
-        window_id = window_get_z_order(i);
+        window_id = window_get_z_order_at(i);
 
         if (window_id == WINDOW_MAX_COUNT)
         {
@@ -293,6 +293,10 @@ static void taskbar_render_start_menu(void)
 
 void taskbar_handle_mouse_click(int32_t x, int32_t y)
 {
+    uint32_t i;
+    uint32_t button_count;
+    uint32_t window_id;
+    Window* window;
     int32_t settings_id;
 
     if (taskbar_initialized == 0)
@@ -318,7 +322,7 @@ void taskbar_handle_mouse_click(int32_t x, int32_t y)
     }
 
     /*
-     * Settings menu item.
+     * Settings item in the Start Menu.
      */
     if (start_menu_open != 0)
     {
@@ -352,6 +356,71 @@ void taskbar_handle_mouse_click(int32_t x, int32_t y)
         {
             start_menu_open = 0;
             window_manager_redraw();
+            return;
+        }
+    }
+
+    /*
+     * Application taskbar buttons.
+     */
+    if (
+        y >= TASKBAR_Y + 2 &&
+        y < TASKBAR_Y + 16
+    )
+    {
+        button_count = 0;
+
+        for (i = 0; i < WINDOW_MAX_COUNT; i++)
+        {
+            window_id = window_get_z_order_at(i);
+
+            if (window_id == 0)
+            {
+                continue;
+            }
+
+            window = window_get(window_id);
+
+            if (window == 0)
+            {
+                continue;
+            }
+
+            if (window->visible == 0)
+            {
+                continue;
+            }
+
+            if (button_count >= TASKBAR_MAX_BUTTONS)
+            {
+                break;
+            }
+
+            if (
+                x >=
+                    TASKBAR_START_X +
+                    button_count *
+                    (TASKBAR_BUTTON_WIDTH +
+                     TASKBAR_BUTTON_SPACING)
+                &&
+                x <
+                    TASKBAR_START_X +
+                    button_count *
+                    (TASKBAR_BUTTON_WIDTH +
+                     TASKBAR_BUTTON_SPACING) +
+                    TASKBAR_BUTTON_WIDTH
+            )
+            {
+                window_bring_to_front(window_id);
+                window_set_active(window_id);
+
+                start_menu_open = 0;
+
+                window_manager_redraw();
+                return;
+            }
+
+            button_count++;
         }
     }
 }

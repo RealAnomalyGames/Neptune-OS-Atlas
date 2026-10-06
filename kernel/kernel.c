@@ -171,9 +171,56 @@ void kernel_main(uint32_t multiboot_information)
                     }
                     else
                     {
-                        window_set_active(
-                            (uint32_t)window_id
-                        );
+                        uint32_t owner_id;
+                        Application* application;
+
+                        owner_id =
+                            window_get_owner(
+                                (uint32_t)window_id
+                            );
+
+                        application = 0;
+
+                        if (owner_id != 0)
+                        {
+                            application =
+                                application_get(owner_id);
+                        }
+
+                        if (
+                            application != 0 &&
+                            application->name[0] == 'S' &&
+                            application->name[1] == 'e' &&
+                            application->name[2] == 't' &&
+                            application->name[3] == 't' &&
+                            application->name[4] == 'i' &&
+                            application->name[5] == 'n' &&
+                            application->name[6] == 'g' &&
+                            application->name[7] == 's' &&
+                            application->name[8] == '\0'
+                        )
+                        {
+            /*
+             * Settings controls.
+             */
+                            settings_handle_click(
+                                application->id,
+                                mouse_x,
+                                mouse_y
+                            );
+
+                            window_set_active(
+                                (uint32_t)window_id
+                            );
+
+                            window_manager_redraw();
+                        }
+                        else
+                        {
+                            window_set_active(
+                                (uint32_t)window_id
+                            );
+                        }
                     }
                 }
             }
