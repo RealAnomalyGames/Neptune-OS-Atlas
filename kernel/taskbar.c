@@ -2,6 +2,7 @@
 #include "window.h"
 #include "application.h"
 #include "settings.h"
+#include "files.h"
 
 #define TASKBAR_BACKGROUND_COLOR ATLAS_COLOR_BLUE
 #define TASKBAR_BUTTON_COLOR     ATLAS_COLOR_DARK_BLUE
@@ -232,7 +233,7 @@ void taskbar_render(void)
     graphics_draw_text(
         272,
         TASKBAR_Y + 5,
-        "013",
+        "014",
         TASKBAR_ACCENT_COLOR
     );
 
@@ -248,31 +249,38 @@ static void taskbar_render_start_menu(void)
 
     graphics_fill_rect(
         4,
-        TASKBAR_Y - 78,
+        TASKBAR_Y - 96,
         150,
-        76,
+        94,
         TASKBAR_BUTTON_COLOR
     );
 
     graphics_draw_rect(
         4,
-        TASKBAR_Y - 78,
+        TASKBAR_Y - 96,
         150,
-        76,
+        94,
         TASKBAR_BORDER_COLOR
     );
 
     graphics_draw_text(
         12,
-        TASKBAR_Y - 68,
+        TASKBAR_Y - 86,
         "ATLAS",
         TASKBAR_TEXT_COLOR
     );
 
     graphics_draw_text(
         12,
-        TASKBAR_Y - 48,
+        TASKBAR_Y - 66,
         "Settings",
+        TASKBAR_TEXT_COLOR
+    );
+
+    graphics_draw_text(
+        12,
+        TASKBAR_Y - 48,
+        "Files",
         TASKBAR_TEXT_COLOR
     );
 
@@ -298,6 +306,7 @@ void taskbar_handle_mouse_click(int32_t x, int32_t y)
     uint32_t window_id;
     Window* window;
     int32_t settings_id;
+    int32_t files_id;
 
     if (taskbar_initialized == 0)
     {
@@ -329,13 +338,34 @@ void taskbar_handle_mouse_click(int32_t x, int32_t y)
         if (
             x >= 4 &&
             x < 154 &&
-            y >= TASKBAR_Y - 54 &&
-            y < TASKBAR_Y - 36
+            y >= TASKBAR_Y - 72 &&
+            y < TASKBAR_Y - 54
         )
         {
             settings_id = settings_launch();
 
             if (settings_id >= 0)
+            {
+                start_menu_open = 0;
+            }
+
+            window_manager_redraw();
+            return;
+        }
+
+                /*
+         * Files item in the Start Menu.
+         */
+        if (
+            x >= 4 &&
+            x < 154 &&
+            y >= TASKBAR_Y - 54 &&
+            y < TASKBAR_Y - 36
+        )
+        {
+            files_id = files_launch();
+
+            if (files_id >= 0)
             {
                 start_menu_open = 0;
             }
@@ -350,7 +380,7 @@ void taskbar_handle_mouse_click(int32_t x, int32_t y)
         if (
             x < 4 ||
             x >= 154 ||
-            y < TASKBAR_Y - 78 ||
+            y < TASKBAR_Y - 96 ||
             y >= TASKBAR_Y
         )
         {

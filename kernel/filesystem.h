@@ -111,12 +111,11 @@ typedef struct
 /*
  * Directory entry.
  */
-typedef struct
-{
+typedef struct {
     uint32_t metadata_block;
-
     char name[ATLASFS_MAX_FILENAME];
-
+    uint8_t type;
+    uint32_t size;
 } AtlasDirectoryEntry;
 
 /*
@@ -182,6 +181,12 @@ int filesystem_find(
 );
 
 int filesystem_list_directory(void);
+
+int filesystem_list_directory_entries(
+    AtlasDirectoryEntry* entries,
+    uint32_t max_entries,
+    uint32_t* entry_count
+);
 
 int filesystem_write_file(
     const char* name,

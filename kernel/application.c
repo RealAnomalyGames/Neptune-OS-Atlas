@@ -1,6 +1,7 @@
 #include "application.h"
 #include "window.h"
 #include "settings.h"
+#include "files.h"
 
 static Application applications[APPLICATION_MAX_COUNT];
 static uint32_t next_application_id;
@@ -279,6 +280,13 @@ void application_close(
         return;
     }
 
+    /*
+     * Give application-specific systems a chance
+     * to release their state before the application
+     * record is cleared.
+     */
+    files_shutdown(id);
+
     window_id = application->window_id;
 
     if (window_id != 0)
@@ -379,5 +387,16 @@ void application_render(uint32_t id)
     )
     {
         settings_render(id);
+    }
+    if (
+        application->name[0] == 'F' &&
+        application->name[1] == 'i' &&
+        application->name[2] == 'l' &&
+        application->name[3] == 'e' &&
+        application->name[4] == 's' &&
+        application->name[5] == '\0'
+    )
+    {
+        files_render(id);
     }
 }

@@ -35,7 +35,8 @@ KERNEL_OBJECTS = \
 	$(BUILD_DIR)/desktop.o \
 	$(BUILD_DIR)/taskbar.o \
 	$(BUILD_DIR)/application.o \
-	$(BUILD_DIR)/settings.o
+	$(BUILD_DIR)/settings.o \
+	$(BUILD_DIR)/files.o
 
 KERNEL = $(BUILD_DIR)/kernel.bin
 
@@ -130,6 +131,9 @@ $(BUILD_DIR)/application.o: kernel/application.c | $(BUILD_DIR)
 
 $(BUILD_DIR)/settings.o: kernel/settings.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c kernel/settings.c -o $(BUILD_DIR)/settings.o
+
+$(BUILD_DIR)/files.o: kernel/files.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/files.c -o $(BUILD_DIR)/files.o
 
 $(KERNEL): $(KERNEL_OBJECTS)
 	$(LD) $(LDFLAGS) -o $(KERNEL) \

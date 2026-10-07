@@ -1039,6 +1039,82 @@ int filesystem_list_directory(void)
     return ATLASFS_SUCCESS;
 }
 
+int filesystem_list_directory_entries(
+    AtlasDirectoryEntry* entries,
+    uint32_t max_entries,
+    uint32_t* entry_count
+)
+{
+    uint32_t block;
+    uint32_t count;
+    AtlasFileMetadata metadata;
+
+    if (!filesystem_is_mounted())
+    {
+        return ATLASFS_NOT_MOUNTED;
+    }
+
+    if (entries == 0 || entry_count == 0 || max_entries == 0)
+    {
+        return ATLASFS_INVALID_PATH;
+    }
+
+    count = 0;
+
+    for (
+        block = ATLASFS_METADATA_START;
+        block < ATLASFS_METADATA_START + ATLASFS_METADATA_BLOCKS;
+        block++
+    )
+    {
+        if (!filesystem_read_metadata(block, &metadata))
+        {
+            continue;
+        }
+
+        if (metadata.type == ATLASFS_TYPE_FREE)
+        {
+            continue;
+        }
+
+        if (metadata.parent != atlas_filesystem.current_directory)
+        {
+            continue;
+        }
+
+        if (count >= max_entries)
+        {
+            break;
+        }
+
+        entries[count].metadata_block = block;
+        entries[count].type = metadata.type;
+        entries[count].size = metadata.size;
+
+        {
+            uint32_t i;
+
+            for (i = 0; i < ATLASFS_MAX_FILENAME; i++)
+            {
+                entries[count].name[i] = metadata.name[i];
+
+                if (metadata.name[i] == '\0')
+                {
+                    break;
+                }
+            }
+
+            entries[count].name[ATLASFS_MAX_FILENAME - 1] = '\0';
+        }
+
+        count++;
+    }
+
+    *entry_count = count;
+
+    return ATLASFS_SUCCESS;
+}
+
 int filesystem_delete(
     const char* name
 )
@@ -1851,33 +1927,34 @@ const char* filesystem_get_current_directory(void)
     return filesystem_current_directory;
 }
 
-int filesystem_change_directory(
-    const char* path
-)
+int filesystem_change_directory(const char* path)
 {
     AtlasFileMetadata metadata;
+    uint32_t block;
+    uint32_t current_directory;
+    uint32_t i;
+    uint32_t path_length;
+    uint32_t last_slash;
+    int found;
 
     if (!filesystem_is_mounted())
     {
         return ATLASFS_NOT_MOUNTED;
     }
 
-    if (
-        path == 0 ||
-        path[0] == '\0'
-    )
+    if (path == 0 || path[0] == '\0')
     {
         return ATLASFS_INVALID_PATH;
     }
 
     /*
-     * Return to the filesystem root.
+     * Return to the root directory.
      */
-    if (
-        path[0] == '/' &&
-        path[1] == '\0'
-    )
+    if (path[0] == '/' && path[1] == '\0')
     {
+        atlas_filesystem.current_directory =
+            atlas_filesystem.superblock.root_directory;
+
         filesystem_current_directory[0] = '/';
         filesystem_current_directory[1] = '\0';
 
@@ -1885,7 +1962,7 @@ int filesystem_change_directory(
     }
 
     /*
-     * Move to the parent directory.
+     * Go to the parent directory.
      */
     if (
         path[0] == '.' &&
@@ -1893,121 +1970,226 @@ int filesystem_change_directory(
         path[2] == '\0'
     )
     {
-        uint32_t length;
-        uint32_t i;
+        current_directory = atlas_filesystem.current_directory;
 
-        length = 0;
-
-        while (
-            filesystem_current_directory[length] != '\0'
-        )
-        {
-            length++;
-        }
-
+        /*
+         * Already at root.
+         */
         if (
-            length <= 1
+            current_directory ==
+            atlas_filesystem.superblock.root_directory
         )
         {
             return ATLASFS_SUCCESS;
         }
 
         /*
-         * Remove trailing slash.
+         * Read the current directory metadata so that
+         * we can obtain its parent metadata block.
          */
-        if (
-            filesystem_current_directory[length - 1] == '/'
-        )
+        if (!filesystem_read_metadata(current_directory, &metadata))
         {
-            length--;
+            return ATLASFS_ERROR;
         }
 
-        i = length;
+        if (metadata.type != ATLASFS_TYPE_DIRECTORY)
+        {
+            return ATLASFS_NOT_DIRECTORY;
+        }
+
+        atlas_filesystem.current_directory = metadata.parent;
+
+        /*
+         * Remove the final directory name from the
+         * displayed path.
+         */
+        path_length = 0;
 
         while (
-            i > 0 &&
-            filesystem_current_directory[i - 1] != '/'
+            filesystem_current_directory[path_length] != '\0' &&
+            path_length < ATLASFS_MAX_PATH - 1
         )
         {
-            i--;
+            path_length++;
         }
 
-        if (i <= 1)
+        if (path_length <= 1)
+        {
+            filesystem_current_directory[0] = '/';
+            filesystem_current_directory[1] = '\0';
+
+            return ATLASFS_SUCCESS;
+        }
+
+        last_slash = 0;
+
+        for (i = 0; i < path_length; i++)
+        {
+            if (filesystem_current_directory[i] == '/')
+            {
+                last_slash = i;
+            }
+        }
+
+        /*
+         * If the last slash is the first character,
+         * the parent is root.
+         */
+        if (last_slash == 0)
         {
             filesystem_current_directory[0] = '/';
             filesystem_current_directory[1] = '\0';
         }
         else
         {
-            filesystem_current_directory[i - 1] = '\0';
+            filesystem_current_directory[last_slash] = '\0';
         }
 
         return ATLASFS_SUCCESS;
     }
 
     /*
-     * For now, only support directory names relative
-     * to the current directory.
+     * Find the requested directory in the current
+     * directory.
      */
-    if (
-        filesystem_find(
-            path,
-            &metadata
-        ) != ATLASFS_SUCCESS
+    found = 0;
+
+    for (
+        block = ATLASFS_METADATA_START;
+        block < ATLASFS_METADATA_START + ATLASFS_METADATA_BLOCKS;
+        block++
     )
+    {
+        if (!filesystem_read_metadata(block, &metadata))
+        {
+            continue;
+        }
+
+        if (metadata.type == ATLASFS_TYPE_FREE)
+        {
+            continue;
+        }
+
+        if (metadata.parent != atlas_filesystem.current_directory)
+        {
+            continue;
+        }
+
+        if (!filesystem_string_equals(metadata.name, path))
+        {
+            continue;
+        }
+
+        found = 1;
+        break;
+    }
+
+    if (!found)
     {
         return ATLASFS_NOT_FOUND;
     }
 
-    if (
-        metadata.type != ATLASFS_IS_DIRECTORY
-    )
+    /*
+     * Make sure the selected entry is actually a directory.
+     *
+     * IMPORTANT:
+     * Use ATLASFS_TYPE_DIRECTORY here, not
+     * ATLASFS_IS_DIRECTORY.
+     */
+    if (metadata.type != ATLASFS_TYPE_DIRECTORY)
     {
         return ATLASFS_NOT_DIRECTORY;
     }
 
     /*
-     * Root -> directory
+     * Make sure the path will fit.
      */
-    if (
-        filesystem_current_directory[0] == '/' &&
-        filesystem_current_directory[1] == '\0'
+    path_length = 0;
+
+    while (
+        filesystem_current_directory[path_length] != '\0' &&
+        path_length < ATLASFS_MAX_PATH - 1
     )
     {
-        uint32_t length;
-        uint32_t i;
+        path_length++;
+    }
 
-        length = 0;
-
-        while (path[length] != '\0')
-        {
-            length++;
-        }
-
+    /*
+     * Root path: "/" + name.
+     */
+    if (
+        path_length == 1 &&
+        filesystem_current_directory[0] == '/'
+    )
+    {
         if (
-            length + 2 >=
-            sizeof(filesystem_current_directory)
+            path_length +
+            1 +
+            ATLASFS_MAX_FILENAME >
+            ATLASFS_MAX_PATH - 1
         )
         {
             return ATLASFS_INVALID_PATH;
         }
 
-        filesystem_current_directory[0] = '/';
+        filesystem_current_directory[path_length] = '\0';
 
-        for (
-            i = 0;
-            i < length;
-            i++
-        )
+        for (i = 0; i < ATLASFS_MAX_FILENAME - 1; i++)
         {
-            filesystem_current_directory[i + 1] =
-                path[i];
+            filesystem_current_directory[
+                path_length + i
+            ] = metadata.name[i];
+
+            if (metadata.name[i] == '\0')
+            {
+                break;
+            }
         }
 
-        filesystem_current_directory[length + 1] = '\0';
-
-        return ATLASFS_SUCCESS;
+        filesystem_current_directory[
+            ATLASFS_MAX_PATH - 1
+        ] = '\0';
     }
+    else
+    {
+        /*
+         * Non-root path: "/parent" + "/" + name.
+         */
+        if (
+            path_length +
+            1 +
+            1 +
+            ATLASFS_MAX_FILENAME >
+            ATLASFS_MAX_PATH - 1
+        )
+        {
+            return ATLASFS_INVALID_PATH;
+        }
+
+        filesystem_current_directory[path_length] = '/';
+
+        for (i = 0; i < ATLASFS_MAX_FILENAME - 1; i++)
+        {
+            filesystem_current_directory[
+                path_length + 1 + i
+            ] = metadata.name[i];
+
+            if (metadata.name[i] == '\0')
+            {
+                break;
+            }
+        }
+
+        filesystem_current_directory[
+            ATLASFS_MAX_PATH - 1
+        ] = '\0';
+    }
+
+    /*
+     * The metadata block we found is the new
+     * current directory.
+     */
+    atlas_filesystem.current_directory = block;
 
     return ATLASFS_SUCCESS;
 }
@@ -2039,7 +2221,7 @@ int filesystem_remove_directory(
     }
 
     if (
-        metadata.type != ATLASFS_IS_DIRECTORY
+        metadata.type != ATLASFS_TYPE_DIRECTORY
     )
     {
         return ATLASFS_NOT_DIRECTORY;

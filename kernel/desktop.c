@@ -77,7 +77,7 @@ void desktop_render(void)
     graphics_draw_text(
         272,
         5,
-        "013",
+        "014",
         DESKTOP_ACCENT_COLOR
     );
 

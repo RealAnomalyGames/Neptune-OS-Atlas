@@ -50,6 +50,8 @@ void kernel_main(uint32_t multiboot_information)
 
     settings_manager_initialize();
 
+    files_manager_initialize();
+
     interrupts_initialize();
 
     mouse_initialize();
